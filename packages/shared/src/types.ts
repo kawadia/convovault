@@ -1,0 +1,148 @@
+import { z } from 'zod';
+
+// ============================================================================
+// Chat Source Types
+// ============================================================================
+
+export const ChatSourceSchema = z.enum([
+  'claude-web',
+  'claude-code',
+  'chatgpt',
+  'generic',
+]);
+
+export type ChatSource = z.infer<typeof ChatSourceSchema>;
+
+// ============================================================================
+// Content Block Types
+// ============================================================================
+
+export const ContentBlockTypeSchema = z.enum([
+  'text',
+  'code',
+  'thinking',
+  'artifact',
+  'tool-use',
+  'tool-result',
+  'image',
+]);
+
+export type ContentBlockType = z.infer<typeof ContentBlockTypeSchema>;
+
+export const ContentBlockSchema = z.object({
+  type: ContentBlockTypeSchema,
+  content: z.string(),
+  language: z.string().optional(),
+  title: z.string().optional(),
+  metadata: z.record(z.unknown()).optional(),
+});
+
+export type ContentBlock = z.infer<typeof ContentBlockSchema>;
+
+// ============================================================================
+// Message Types
+// ============================================================================
+
+export const MessageRoleSchema = z.enum(['user', 'assistant', 'system']);
+
+export type MessageRole = z.infer<typeof MessageRoleSchema>;
+
+export const MessageSchema = z.object({
+  id: z.string(),
+  index: z.number().int().nonnegative(),
+  role: MessageRoleSchema,
+  content: z.array(ContentBlockSchema),
+  timestamp: z.number().optional(),
+});
+
+export type Message = z.infer<typeof MessageSchema>;
+
+// ============================================================================
+// Chat Transcript Types
+// ============================================================================
+
+export const ChatTranscriptSchema = z.object({
+  id: z.string(),
+  source: ChatSourceSchema,
+  sourceUrl: z.string().url(),
+  title: z.string(),
+  createdAt: z.number().optional(),
+  fetchedAt: z.number(),
+  messageCount: z.number().int().nonnegative(),
+  wordCount: z.number().int().nonnegative(),
+  messages: z.array(MessageSchema),
+});
+
+export type ChatTranscript = z.infer<typeof ChatTranscriptSchema>;
+
+// ============================================================================
+// User Data Types
+// ============================================================================
+
+export const UserChatDataSchema = z.object({
+  chatId: z.string(),
+  readPosition: z.number().int().nonnegative(),
+  isRead: z.boolean(),
+  folder: z.string().optional(),
+  importedAt: z.number(),
+  tags: z.array(z.string()),
+});
+
+export type UserChatData = z.infer<typeof UserChatDataSchema>;
+
+export const UserHighlightSchema = z.object({
+  id: z.string(),
+  chatId: z.string(),
+  messageId: z.string(),
+  startOffset: z.number().int().nonnegative(),
+  endOffset: z.number().int().nonnegative(),
+  note: z.string().optional(),
+  createdAt: z.number(),
+});
+
+export type UserHighlight = z.infer<typeof UserHighlightSchema>;
+
+export const UserSettingsSchema = z.object({
+  theme: z.enum(['light', 'dark', 'system']),
+  fontSize: z.enum(['small', 'medium', 'large']),
+  defaultFolder: z.string().optional(),
+});
+
+export type UserSettings = z.infer<typeof UserSettingsSchema>;
+
+// ============================================================================
+// API Types
+// ============================================================================
+
+export const ImportChatRequestSchema = z.object({
+  url: z.string().url(),
+});
+
+export type ImportChatRequest = z.infer<typeof ImportChatRequestSchema>;
+
+export const UpdateUserChatRequestSchema = z.object({
+  readPosition: z.number().int().nonnegative().optional(),
+  isRead: z.boolean().optional(),
+  folder: z.string().nullable().optional(),
+});
+
+export type UpdateUserChatRequest = z.infer<typeof UpdateUserChatRequestSchema>;
+
+export const CreateHighlightRequestSchema = z.object({
+  messageId: z.string(),
+  startOffset: z.number().int().nonnegative(),
+  endOffset: z.number().int().nonnegative(),
+  note: z.string().optional(),
+});
+
+export type CreateHighlightRequest = z.infer<typeof CreateHighlightRequestSchema>;
+
+// ============================================================================
+// Parser Interface
+// ============================================================================
+
+export interface ChatParser {
+  source: ChatSource;
+  canParse(url: string): boolean;
+  parse(html: string, url: string): ChatTranscript;
+}
