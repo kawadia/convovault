@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { chatsRoutes } from './routes/chats';
 
 // Types for Cloudflare Workers environment
 export interface Env {
@@ -18,6 +19,7 @@ app.use(
     origin: '*', // Configure properly for production
     allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'X-User-ID', 'X-Admin-Key'],
+    exposeHeaders: ['X-User-ID'],
   })
 );
 
@@ -26,10 +28,13 @@ app.get('/', (c) => {
   return c.json({ status: 'ok', service: 'convovault-api' });
 });
 
-// API v1 routes will be added here
+// API v1 routes
 app.get('/api/v1/health', (c) => {
   return c.json({ status: 'ok', version: '1.0.0' });
 });
+
+// Mount chat routes
+app.route('/api/v1', chatsRoutes);
 
 // 404 handler
 app.notFound((c) => {
