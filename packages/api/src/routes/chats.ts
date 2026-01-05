@@ -345,10 +345,14 @@ function generateSnippet(text: string, searchTerm: string, contextChars: number 
 
 /**
  * GET /search
- * Search messages across all chats using full-text search
+ * Search messages across all chats or within a specific chat
+ * Query params:
+ *   - q: search query (required, min 2 chars)
+ *   - chatId: optional chat ID to filter results to a specific chat
  */
 chatsRoutes.get('/search', async (c) => {
   const query = c.req.query('q');
+  const chatId = c.req.query('chatId');
 
   if (!query || query.trim().length < 2) {
     return c.json({ results: [] });
@@ -357,22 +361,41 @@ chatsRoutes.get('/search', async (c) => {
   try {
     // Search using FTS5 MATCH - contentless tables don't support snippet()
     // so we fetch the chat content separately to generate snippets
-    const results = await c.env.DB.prepare(`
-      SELECT
-        m.chat_id,
-        m.message_index,
-        m.role,
-        c.title as chat_title,
-        c.content as chat_content
-      FROM messages_fts
-      JOIN messages_fts_meta m ON messages_fts.rowid = m.rowid
-      JOIN chats c ON m.chat_id = c.id
-      WHERE messages_fts MATCH ?
-      ORDER BY rank
-      LIMIT 50
-    `)
-      .bind(query)
-      .all();
+    // If chatId is provided, filter to that specific chat
+    const sqlQuery = chatId
+      ? `
+        SELECT
+          m.chat_id,
+          m.message_index,
+          m.role,
+          c.title as chat_title,
+          c.content as chat_content
+        FROM messages_fts
+        JOIN messages_fts_meta m ON messages_fts.rowid = m.rowid
+        JOIN chats c ON m.chat_id = c.id
+        WHERE messages_fts MATCH ? AND m.chat_id = ?
+        ORDER BY m.message_index
+        LIMIT 100
+      `
+      : `
+        SELECT
+          m.chat_id,
+          m.message_index,
+          m.role,
+          c.title as chat_title,
+          c.content as chat_content
+        FROM messages_fts
+        JOIN messages_fts_meta m ON messages_fts.rowid = m.rowid
+        JOIN chats c ON m.chat_id = c.id
+        WHERE messages_fts MATCH ?
+        ORDER BY rank
+        LIMIT 50
+      `;
+
+    const stmt = c.env.DB.prepare(sqlQuery);
+    const results = chatId
+      ? await stmt.bind(query, chatId).all()
+      : await stmt.bind(query).all();
 
     const searchResults = (results.results || []).map((row) => {
       // Extract message content from the stored JSON

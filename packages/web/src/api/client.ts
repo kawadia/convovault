@@ -110,8 +110,10 @@ export const api = {
     });
   },
 
-  // Search messages across all chats
-  async search(query: string): Promise<{ results: SearchResult[] }> {
-    return fetchApi<{ results: SearchResult[] }>(`/search?q=${encodeURIComponent(query)}`);
+  // Search messages across all chats or within a specific chat
+  async search(query: string, chatId?: string): Promise<{ results: SearchResult[] }> {
+    const params = new URLSearchParams({ q: query });
+    if (chatId) params.append('chatId', chatId);
+    return fetchApi<{ results: SearchResult[] }>(`/search?${params.toString()}`);
   },
 };
