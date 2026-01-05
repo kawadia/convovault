@@ -11,4 +11,4 @@ ENVIRONMENT = "development"
 [[d1_databases]]
 binding = "DB"
 database_name = "convovault-db"
-database_id = "local" # Will be replaced with actual ID after creation
+database_id = "38085228-fb47-40aa-a732-793a3744bc75"
