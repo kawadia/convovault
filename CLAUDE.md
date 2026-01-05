@@ -70,16 +70,26 @@ pnpm --filter @convovault/api db:migrate
 3. **`@convovault/web`** - React SPA
    - `src/pages/Home.tsx` - Chat list with import modal
    - `src/pages/Chat.tsx` - Chat viewer
-   - `src/components/collection/ImportModal.tsx` - File upload for importing chats
+   - `src/components/collection/ImportModal.tsx` - URL input for importing chats (supports multiple URLs)
    - `src/api/client.ts` - API client with admin key management
 
 ### Data Flow
 
-1. User uploads saved HTML file from claude.ai share page
-2. Frontend sends HTML + URL to `POST /api/v1/chats/import`
-3. API parses HTML using `claudeWebParser` into `ChatTranscript`
-4. Chat stored in D1 database, returned to frontend
-5. Frontend displays chat using `ChatViewer` component
+1. User enters claude.ai share URL(s) in the import modal
+2. Frontend sends URL to `POST /api/v1/chats/import`
+3. API uses **Cloudflare Browser Rendering API** to fetch and render the page (handles JavaScript-rendered content)
+4. API parses rendered HTML using `claudeWebParser` into `ChatTranscript`
+5. Chat stored in D1 database, returned to frontend
+6. Frontend displays chat using `ChatViewer` component
+
+### Browser Rendering
+
+Claude.ai share pages are React Server Components that require JavaScript execution to render content. The API uses Cloudflare's Browser Rendering REST API to:
+- Fetch the URL in a headless browser
+- Wait for `[data-is-streaming]` selector (indicates messages are loaded)
+- Return fully-rendered HTML for parsing
+
+This eliminates the need for users to manually save HTML files.
 
 ### Auth Model
 
@@ -101,6 +111,34 @@ The claude-web parser extracts messages from HTML DOM, converts HTML formatting 
 
 ## Environment Variables
 
-- `VITE_API_URL` - API base URL for frontend (set during build)
-- `ADMIN_API_KEY` - Secret for admin operations (Cloudflare Worker secret)
-- `CLOUDFLARE_API_TOKEN` - For CI/CD deployment
+### Frontend (build-time)
+- `VITE_API_URL` - API base URL for frontend
+
+### API (Cloudflare Worker secrets)
+- `ADMIN_API_KEY` - Secret for admin operations (import/delete chats)
+- `CF_ACCOUNT_ID` - Cloudflare account ID for Browser Rendering API
+- `CF_API_TOKEN` - Cloudflare API token with "Browser Rendering: Edit" permission
+
+### CI/CD
+- `CLOUDFLARE_API_TOKEN` - For GitHub Actions deployment
+
+### Local Development
+Create `packages/api/.dev.vars` with:
+```
+ADMIN_API_KEY=your-local-admin-key
+CF_ACCOUNT_ID=your-cloudflare-account-id
+CF_API_TOKEN=your-cloudflare-api-token
+```
+
+## Test Scripts
+
+```bash
+# Test the parser against live Browser Rendering output
+cd packages/api
+npx tsx scripts/test-parser.ts
+
+# Generate a new test fixture from a share URL
+npx tsx scripts/generate-fixture.ts
+```
+
+Test fixtures are stored in `packages/api/src/__tests__/fixtures/` and contain actual Browser Rendering output for regression testing.

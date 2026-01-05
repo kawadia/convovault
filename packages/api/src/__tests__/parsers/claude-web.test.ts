@@ -1,5 +1,16 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'fs';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import { claudeWebParser } from '../../parsers/claude-web';
+
+// Load the Browser Rendering fixture
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const browserRenderingFixture = readFileSync(
+  resolve(__dirname, '../fixtures/browser-rendering-output.html'),
+  'utf-8'
+);
 
 // Test fixture: minimal HTML structure mimicking claude.ai share page
 const createMockHtml = (options: {
@@ -447,6 +458,96 @@ describe('claudeWebParser', () => {
       const content = result.messages[0]?.content[0]?.content || '';
       const lines = content.split('\n').filter((l: string) => l.trim());
       expect(lines.length).toBeGreaterThanOrEqual(3);
+    });
+  });
+
+  describe('Browser Rendering API output', () => {
+    // These tests use actual HTML from Cloudflare Browser Rendering API
+    // Fixture: https://claude.ai/share/6c9019ea-a06f-42d1-87dd-67db6c8703a0
+    const TEST_URL = 'https://claude.ai/share/6c9019ea-a06f-42d1-87dd-67db6c8703a0';
+
+    it('parses Browser Rendering output without errors', () => {
+      expect(() => claudeWebParser.parse(browserRenderingFixture, TEST_URL)).not.toThrow();
+    });
+
+    it('extracts title from Browser Rendering output', () => {
+      const result = claudeWebParser.parse(browserRenderingFixture, TEST_URL);
+      expect(result.title).toBeTruthy();
+      expect(result.title).not.toBe('Untitled Conversation');
+    });
+
+    it('extracts both user and assistant messages', () => {
+      const result = claudeWebParser.parse(browserRenderingFixture, TEST_URL);
+
+      const userMessages = result.messages.filter(m => m.role === 'user');
+      const assistantMessages = result.messages.filter(m => m.role === 'assistant');
+
+      expect(userMessages.length).toBeGreaterThan(0);
+      expect(assistantMessages.length).toBeGreaterThan(0);
+      // Should have equal or near-equal counts (user starts, assistant responds)
+      expect(Math.abs(userMessages.length - assistantMessages.length)).toBeLessThanOrEqual(1);
+    });
+
+    it('extracts meaningful content (not CSS classes)', () => {
+      const result = claudeWebParser.parse(browserRenderingFixture, TEST_URL);
+
+      // Check that assistant messages don't start with CSS-like content
+      const assistantMessages = result.messages.filter(m => m.role === 'assistant');
+      for (const msg of assistantMessages) {
+        const content = msg.content[0]?.content || '';
+        // Should not contain Tailwind CSS patterns like [&_pre>div]
+        expect(content).not.toMatch(/^\[&_/);
+        expect(content).not.toMatch(/^div\]:/);
+        // Should have actual text content
+        expect(content.length).toBeGreaterThan(10);
+      }
+    });
+
+    it('handles Tailwind CSS classes with > in attributes', () => {
+      const result = claudeWebParser.parse(browserRenderingFixture, TEST_URL);
+
+      // All content should be clean text without HTML artifacts
+      for (const msg of result.messages) {
+        const content = msg.content[0]?.content || '';
+        // Should not contain raw HTML or class attribute fragments
+        expect(content).not.toContain('<div');
+        expect(content).not.toContain('class="');
+        expect(content).not.toContain('bg-bg-000');
+      }
+    });
+
+    it('calculates word count correctly', () => {
+      const result = claudeWebParser.parse(browserRenderingFixture, TEST_URL);
+
+      // Should have substantial word count from a real conversation
+      expect(result.wordCount).toBeGreaterThan(100);
+    });
+
+    it('messages are in correct order (alternating user/assistant)', () => {
+      const result = claudeWebParser.parse(browserRenderingFixture, TEST_URL);
+
+      // First message should be from user
+      expect(result.messages[0]?.role).toBe('user');
+
+      // Check alternating pattern
+      for (let i = 0; i < result.messages.length - 1; i++) {
+        const current = result.messages[i]?.role;
+        const next = result.messages[i + 1]?.role;
+        // Allow for some flexibility (e.g., multiple user messages in a row)
+        // but generally should alternate
+        if (current === 'user') {
+          expect(next).toBe('assistant');
+        }
+      }
+    });
+
+    it('assigns sequential indices to all messages', () => {
+      const result = claudeWebParser.parse(browserRenderingFixture, TEST_URL);
+
+      result.messages.forEach((msg, i) => {
+        expect(msg.index).toBe(i);
+        expect(msg.id).toBe(`msg-${i}`);
+      });
     });
   });
 });

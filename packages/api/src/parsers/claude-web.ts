@@ -154,14 +154,31 @@ function extractMessagesWithClasses(html: string): Message[] {
     }
   }
 
-  // Find assistant messages (data-is-streaming attribute with group relative pb-3 class)
-  const assistantMsgRegex = /<div[^>]*class="group relative pb-3"[^>]*data-is-streaming[^>]*>([\s\S]*?)(?=<div[^>]*class="group relative pb-3"|<div[^>]*class="[^"]*font-user-message|$)/gi;
+  // Find assistant messages (data-is-streaming attribute with group relative pb-* class)
+  // The HTML can have attributes in either order:
+  //   <div data-is-streaming="false" class="group relative pb-8">
+  //   <div class="group relative pb-3" data-is-streaming="false">
+  const assistantMsgRegex = /<div[^>]*data-is-streaming="false"[^>]*class="group relative pb-\d+"[^>]*>([\s\S]*?)(?=<div[^>]*data-is-streaming|<div[^>]*class="[^"]*font-user-message|$)/gi;
   const assistantMessages: Array<{ content: string; position: number }> = [];
 
   while ((match = assistantMsgRegex.exec(html)) !== null) {
     const blockHtml = match[1] || '';
     const content = extractTextContent(blockHtml);
     if (content.trim() && content.length > 10) { // Assistant messages should have substantial content
+      assistantMessages.push({
+        content,
+        position: match.index
+      });
+    }
+  }
+
+  // Also try the reverse attribute order (class before data-is-streaming)
+  const assistantMsgRegex2 = /<div[^>]*class="group relative pb-\d+"[^>]*data-is-streaming="false"[^>]*>([\s\S]*?)(?=<div[^>]*data-is-streaming|<div[^>]*class="[^"]*font-user-message|$)/gi;
+
+  while ((match = assistantMsgRegex2.exec(html)) !== null) {
+    const blockHtml = match[1] || '';
+    const content = extractTextContent(blockHtml);
+    if (content.trim() && content.length > 10) {
       assistantMessages.push({
         content,
         position: match.index
@@ -232,7 +249,9 @@ function extractTextContent(html: string): string {
   text = text.replace(/<a[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi, '[$2]($1)');
 
   // Remove remaining HTML tags
-  text = text.replace(/<[^>]+>/g, '');
+  // Note: Simple /<[^>]+>/g fails when attributes contain '>' (e.g., Tailwind's [&_pre>div])
+  // Use a more robust approach that handles quoted attributes
+  text = removeHtmlTags(text);
 
   // Decode HTML entities
   text = decodeHtmlEntities(text);
@@ -290,6 +309,51 @@ function extractListItems(listHtml: string): string[] {
   }
 
   return items;
+}
+
+/**
+ * Remove HTML tags, handling '>' inside quoted attributes
+ * e.g., <div class="[&_pre>div]:bg-red"> should be fully removed
+ */
+function removeHtmlTags(html: string): string {
+  let result = '';
+  let i = 0;
+
+  while (i < html.length) {
+    if (html[i] === '<') {
+      // Find the end of this tag, respecting quoted attributes
+      let j = i + 1;
+      let inQuote: string | null = null;
+
+      while (j < html.length) {
+        const char = html[j];
+
+        if (inQuote) {
+          // Inside a quoted attribute value
+          if (char === inQuote) {
+            inQuote = null;
+          }
+        } else {
+          // Not inside quotes
+          if (char === '"' || char === "'") {
+            inQuote = char;
+          } else if (char === '>') {
+            // Found the end of the tag
+            break;
+          }
+        }
+        j++;
+      }
+
+      // Skip past the closing '>'
+      i = j + 1;
+    } else {
+      result += html[i];
+      i++;
+    }
+  }
+
+  return result;
 }
 
 /**
