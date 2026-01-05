@@ -9,80 +9,26 @@ interface ImportModalProps {
 const API_URL = import.meta.env.VITE_API_URL || 'https://convovault-api.kawadia.workers.dev/api/v1';
 const APP_URL = typeof window !== 'undefined' ? window.location.origin : 'https://convovault.pages.dev';
 
-// Generate bookmarklet code with visual feedback overlay
+// Generate bookmarklet code - simplified for reliability
 function getBookmarkletCode(adminKey: string): string {
   const code = `
-(function() {
-  if (!location.href.includes('claude.ai/share/')) {
-    alert('Please use this bookmarklet on a claude.ai/share page');
-    return;
-  }
-
-  var overlay = document.createElement('div');
-  overlay.id = 'convovault-overlay';
-  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);z-index:999999;display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif';
-
-  var box = document.createElement('div');
-  box.style.cssText = 'background:white;padding:32px;border-radius:12px;text-align:center;max-width:400px;box-shadow:0 25px 50px rgba(0,0,0,0.25)';
-
-  var spinner = document.createElement('div');
-  spinner.style.cssText = 'width:48px;height:48px;border:4px solid #e5e7eb;border-top-color:#6366f1;border-radius:50%;animation:cvspin 1s linear infinite;margin:0 auto 16px';
-
-  var style = document.createElement('style');
-  style.textContent = '@keyframes cvspin{to{transform:rotate(360deg)}}';
-  document.head.appendChild(style);
-
-  var text = document.createElement('div');
-  text.style.cssText = 'color:#374151;font-size:16px;font-weight:500';
-  text.textContent = 'Importing to ConvoVault...';
-
-  box.appendChild(spinner);
-  box.appendChild(text);
-  overlay.appendChild(box);
-  document.body.appendChild(overlay);
-
-  var html = document.documentElement.outerHTML;
-  var url = location.href;
-
-  fetch('${API_URL}/chats/import', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Admin-Key': '${adminKey}'
-    },
-    body: JSON.stringify({ url: url, html: html })
+(function(){
+  if(!location.href.includes('claude.ai/share/')){alert('Use on claude.ai/share page');return;}
+  var d=document,b=d.body,o=d.createElement('div');
+  o.innerHTML='<div style="position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:99999;display:flex;align-items:center;justify-content:center"><div style="background:#fff;padding:24px 32px;border-radius:12px;text-align:center;font-family:system-ui"><div id="cvs" style="color:#6366f1;font-size:18px">Importing...</div></div></div>';
+  b.appendChild(o);
+  var s=d.getElementById('cvs');
+  fetch('${API_URL}/chats/import',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-Admin-Key':'${adminKey}'},
+    body:JSON.stringify({url:location.href,html:d.documentElement.outerHTML})
   })
-  .then(function(r) { return r.json(); })
-  .then(function(data) {
-    if (data.error) {
-      spinner.style.display = 'none';
-      text.style.color = '#dc2626';
-      text.innerHTML = '<strong>Import failed</strong><br><span style="font-size:14px;color:#6b7280">' + data.error + '</span>';
-      setTimeout(function() { overlay.remove(); }, 3000);
-    } else {
-      spinner.style.cssText = 'width:48px;height:48px;background:#10b981;border-radius:50%;margin:0 auto 16px;display:flex;align-items:center;justify-content:center';
-      spinner.innerHTML = '<svg width="24" height="24" fill="none" stroke="white" stroke-width="3"><path d="M5 12l5 5L20 7"/></svg>';
-      text.innerHTML = '<strong style="color:#059669">Imported!</strong><br><span style="font-size:14px;color:#374151">' + data.title + '</span><br><span style="font-size:13px;color:#6b7280">' + data.messageCount + ' messages</span>';
-
-      var btn = document.createElement('button');
-      btn.style.cssText = 'margin-top:16px;padding:10px 24px;background:#6366f1;color:white;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer';
-      btn.textContent = 'Open in ConvoVault';
-      btn.onclick = function() { window.open('${APP_URL}/chat/' + data.id, '_blank'); overlay.remove(); };
-      box.appendChild(btn);
-
-      var close = document.createElement('button');
-      close.style.cssText = 'display:block;margin:8px auto 0;padding:8px 16px;background:transparent;color:#6b7280;border:none;font-size:13px;cursor:pointer';
-      close.textContent = 'Close';
-      close.onclick = function() { overlay.remove(); };
-      box.appendChild(close);
-    }
+  .then(function(r){return r.json()})
+  .then(function(d){
+    if(d.error){s.style.color='#dc2626';s.textContent='Error: '+d.error;setTimeout(function(){o.remove()},3000);}
+    else{s.innerHTML='<div style="color:#059669;font-weight:600">✓ Imported!</div><div style="margin:8px 0;color:#374151">'+d.title+'</div><div style="color:#6b7280;font-size:14px">'+d.messageCount+' messages</div><button onclick="window.open(\\'${APP_URL}/chat/'+d.id+'\\');this.parentElement.parentElement.parentElement.remove()" style="margin-top:12px;padding:8px 20px;background:#6366f1;color:#fff;border:none;border-radius:6px;cursor:pointer">Open</button>';}
   })
-  .catch(function(e) {
-    spinner.style.display = 'none';
-    text.style.color = '#dc2626';
-    text.innerHTML = '<strong>Import failed</strong><br><span style="font-size:14px;color:#6b7280">' + e.message + '</span>';
-    setTimeout(function() { overlay.remove(); }, 3000);
-  });
+  .catch(function(e){s.style.color='#dc2626';s.textContent='Error: '+e.message;setTimeout(function(){o.remove()},3000);});
 })();
 `.replace(/\s+/g, ' ').trim();
   return `javascript:${encodeURIComponent(code)}`;
