@@ -125,6 +125,16 @@ chatsRoutes.post('/chats/import', adminAuth, async (c) => {
   // Parse the HTML
   const transcript = parser.parse(html, url);
 
+  // Debug: log if no messages were found
+  if (transcript.messages.length === 0) {
+    console.log('DEBUG: No messages parsed from HTML');
+    console.log('DEBUG: HTML length:', html.length);
+    console.log('DEBUG: HTML preview (first 2000 chars):', html.substring(0, 2000));
+    console.log('DEBUG: Contains data-test-render-count:', html.includes('data-test-render-count'));
+    console.log('DEBUG: Contains font-user-message:', html.includes('font-user-message'));
+    console.log('DEBUG: Contains data-is-streaming:', html.includes('data-is-streaming'));
+  }
+
   // Store in database
   try {
     await c.env.DB.prepare(
