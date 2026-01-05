@@ -1,22 +1,44 @@
 import { Link } from 'react-router';
 import type { ChatSummary } from '../../api/client';
+import { isAdmin } from '../../api/client';
 
 interface ChatCardProps {
   chat: ChatSummary;
+  onDelete?: (id: string) => void;
 }
 
-export default function ChatCard({ chat }: ChatCardProps) {
+export default function ChatCard({ chat, onDelete }: ChatCardProps) {
   const formattedDate = new Date(chat.fetchedAt).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
   });
 
+  const handleDelete = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onDelete && confirm(`Delete "${chat.title}"?`)) {
+      onDelete(chat.id);
+    }
+  };
+
   return (
-    <Link
-      to={`/chat/${chat.id}`}
-      className="block bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border border-gray-200 dark:border-gray-700"
-    >
+    <div className="relative group">
+      {isAdmin() && onDelete && (
+        <button
+          onClick={handleDelete}
+          className="absolute top-2 right-2 z-10 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+          title="Delete chat"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      )}
+      <Link
+        to={`/chat/${chat.id}`}
+        className="block bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border border-gray-200 dark:border-gray-700"
+      >
       <h3 className="font-semibold text-gray-900 dark:text-white truncate mb-2">
         {chat.title}
       </h3>
@@ -45,6 +67,7 @@ export default function ChatCard({ chat }: ChatCardProps) {
           {chat.source}
         </span>
       </div>
-    </Link>
+      </Link>
+    </div>
   );
 }

@@ -1,16 +1,28 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
 import ImportModal from '../components/collection/ImportModal';
 import ChatCard from '../components/collection/ChatCard';
 
 export default function Home() {
   const [showImport, setShowImport] = useState(false);
+  const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
     queryKey: ['chats'],
     queryFn: () => api.listChats(),
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.deleteChat(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['chats'] });
+    },
+  });
+
+  const handleDelete = (id: string) => {
+    deleteMutation.mutate(id);
+  };
 
   const chats = data?.chats || [];
 
@@ -41,7 +53,7 @@ export default function Home() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {chats.map((chat) => (
-              <ChatCard key={chat.id} chat={chat} />
+              <ChatCard key={chat.id} chat={chat} onDelete={handleDelete} />
             ))}
           </div>
         )}
