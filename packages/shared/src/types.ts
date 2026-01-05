@@ -61,6 +61,13 @@ export type Message = z.infer<typeof MessageSchema>;
 // Chat Transcript Types
 // ============================================================================
 
+export const ParticipantsSchema = z.object({
+  user: z.string(),
+  assistant: z.string(),
+});
+
+export type Participants = z.infer<typeof ParticipantsSchema>;
+
 export const ChatTranscriptSchema = z.object({
   id: z.string(),
   source: ChatSourceSchema,
@@ -71,6 +78,7 @@ export const ChatTranscriptSchema = z.object({
   messageCount: z.number().int().nonnegative(),
   wordCount: z.number().int().nonnegative(),
   messages: z.array(MessageSchema),
+  participants: ParticipantsSchema.optional(),
 });
 
 export type ChatTranscript = z.infer<typeof ChatTranscriptSchema>;

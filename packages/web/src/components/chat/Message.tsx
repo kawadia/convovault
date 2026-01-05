@@ -1,14 +1,42 @@
-import type { Message as MessageType, ContentBlock } from '@convovault/shared';
-import { useState } from 'react';
+import type { Message as MessageType, ContentBlock, Participants } from '@convovault/shared';
+import { useEffect, useState } from 'react';
 import Markdown from 'react-markdown';
+
+// Threshold for considering a message "long"
+const LONG_MESSAGE_THRESHOLD = 500;
 
 interface MessageProps {
   message: MessageType;
+  globalFoldState?: 'all-folded' | 'all-unfolded' | null;
+  participants?: Participants;
 }
 
-export default function Message({ message }: MessageProps) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+function getMessageLength(message: MessageType): number {
+  return message.content.reduce((sum, block) => sum + block.content.length, 0);
+}
+
+export default function Message({ message, globalFoldState, participants }: MessageProps) {
+  const isLong = getMessageLength(message) > LONG_MESSAGE_THRESHOLD;
+  const [isCollapsed, setIsCollapsed] = useState(isLong);
   const isUser = message.role === 'user';
+
+  // Use participant names if available, otherwise fall back to defaults
+  const displayName = isUser
+    ? (participants?.user || 'User')
+    : (participants?.assistant || 'Assistant');
+  const initials = displayName.charAt(0).toUpperCase();
+
+  // Respond to global fold/unfold commands
+  useEffect(() => {
+    if (globalFoldState === 'all-folded' && isLong) {
+      setIsCollapsed(true);
+    } else if (globalFoldState === 'all-unfolded') {
+      setIsCollapsed(false);
+    }
+  }, [globalFoldState, isLong]);
+
+  // Generate preview text for collapsed state
+  const previewText = message.content[0]?.content.substring(0, 150).replace(/\n/g, ' ') || '';
 
   return (
     <div
@@ -22,21 +50,32 @@ export default function Message({ message }: MessageProps) {
               ? 'bg-blue-500 text-white'
               : 'bg-purple-500 text-white'
           }`}
+          title={displayName}
         >
-          {isUser ? 'U' : 'A'}
+          {initials}
         </div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-2">
             <span className="font-medium text-gray-900 dark:text-white">
-              {isUser ? 'User' : 'Assistant'}
+              {displayName}
             </span>
-            <button
-              onClick={() => setIsCollapsed(!isCollapsed)}
-              className="text-gray-400 hover:text-gray-600 text-sm opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              {isCollapsed ? 'Expand' : 'Collapse'}
-            </button>
+            {isLong && (
+              <button
+                onClick={() => setIsCollapsed(!isCollapsed)}
+                className="flex items-center gap-1 px-2 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                <svg
+                  className={`w-3 h-3 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+                {isCollapsed ? 'Expand' : 'Fold'}
+              </button>
+            )}
           </div>
 
           {!isCollapsed && (
@@ -48,8 +87,14 @@ export default function Message({ message }: MessageProps) {
           )}
 
           {isCollapsed && (
-            <div className="text-gray-500 dark:text-gray-400 italic">
-              {message.content[0]?.content.substring(0, 100)}...
+            <div
+              className="text-gray-500 dark:text-gray-400 italic cursor-pointer hover:text-gray-700 dark:hover:text-gray-200"
+              onClick={() => setIsCollapsed(false)}
+            >
+              {previewText}...
+              <span className="ml-2 text-xs text-indigo-500 dark:text-indigo-400">
+                (click to expand)
+              </span>
             </div>
           )}
         </div>

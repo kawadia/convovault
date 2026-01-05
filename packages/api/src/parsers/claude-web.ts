@@ -3,6 +3,7 @@ import type {
   ChatTranscript,
   Message,
   ContentBlock,
+  Participants,
 } from '@convovault/shared';
 
 /**
@@ -30,6 +31,7 @@ export const claudeWebParser: ChatParser = {
     const title = extractTitle(html);
     const messages = extractMessages(html);
     const wordCount = calculateWordCount(messages);
+    const participants = extractParticipants(html);
 
     return {
       id: generateId(url),
@@ -40,6 +42,7 @@ export const claudeWebParser: ChatParser = {
       messageCount: messages.length,
       wordCount,
       messages,
+      participants,
     };
   },
 };
@@ -76,6 +79,39 @@ function extractTitle(html: string): string {
   }
 
   return title || 'Untitled Conversation';
+}
+
+/**
+ * Extract participant names from the intro text
+ * Looks for patterns like "This is a copy of a chat between Claude and Shreyas"
+ */
+function extractParticipants(html: string): Participants | undefined {
+  // Pattern: "This is a copy of a chat between X and Y"
+  // X is typically the assistant (Claude), Y is the user
+  const patterns = [
+    // Standard format: "between Claude and Shreyas"
+    /This is a copy of a chat between\s+(\w+)\s+and\s+(\w+)/i,
+    // Alternative: could be in different order
+    /chat between\s+(\w+)\s+and\s+(\w+)/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = html.match(pattern);
+    if (match) {
+      const [, name1, name2] = match;
+      // Claude/Assistant is typically first, user is second
+      // But let's be smart: if one of the names is "Claude", that's the assistant
+      if (name1.toLowerCase() === 'claude') {
+        return { assistant: name1, user: name2 };
+      } else if (name2.toLowerCase() === 'claude') {
+        return { assistant: name2, user: name1 };
+      }
+      // Default: first is assistant, second is user
+      return { assistant: name1, user: name2 };
+    }
+  }
+
+  return undefined;
 }
 
 /**

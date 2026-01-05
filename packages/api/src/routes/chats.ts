@@ -11,70 +11,44 @@ export const chatsRoutes = new Hono<{ Bindings: Env }>();
 const parsers = [claudeWebParser];
 
 /**
- * Sleep for a given number of milliseconds
- */
-function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-/**
  * Fetch rendered HTML using Cloudflare Browser Rendering REST API
  * This bypasses Cloudflare's bot protection and waits for React to hydrate
- * Includes retry logic with exponential backoff for rate limits
  */
 async function fetchRenderedHtml(url: string, env: Env): Promise<string> {
-  const maxRetries = 3;
-  const baseDelay = 2000; // 2 seconds
-
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    const response = await fetch(
-      `https://api.cloudflare.com/client/v4/accounts/${env.CF_ACCOUNT_ID}/browser-rendering/content`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${env.CF_API_TOKEN}`,
-          'Content-Type': 'application/json',
+  const response = await fetch(
+    `https://api.cloudflare.com/client/v4/accounts/${env.CF_ACCOUNT_ID}/browser-rendering/content`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${env.CF_API_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        url,
+        // Wait for the page to be fully loaded and idle
+        gotoOptions: { waitUntil: 'networkidle0' },
+        // Wait for Claude's message container to appear (indicates React hydration complete)
+        waitForSelector: {
+          selector: '[data-is-streaming]',
+          options: { timeout: 15000 },
         },
-        body: JSON.stringify({
-          url,
-          // Wait for the page to be fully loaded and idle
-          gotoOptions: { waitUntil: 'networkidle0' },
-          // Wait for Claude's message container to appear (indicates React hydration complete)
-          waitForSelector: {
-            selector: '[data-is-streaming]',
-            options: { timeout: 15000 },
-          },
-        }),
-      }
-    );
-
-    // Handle rate limiting with retry
-    if (response.status === 429) {
-      if (attempt < maxRetries - 1) {
-        const delay = baseDelay * Math.pow(2, attempt); // Exponential backoff: 2s, 4s, 8s
-        console.log(`Rate limited, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})`);
-        await sleep(delay);
-        continue;
-      }
-      throw new Error('Browser rendering rate limit exceeded after retries');
+      }),
     }
+  );
 
-    if (!response.ok) {
-      const errorBody = await response.text();
-      throw new Error(`Browser rendering failed: ${response.status} - ${errorBody}`);
-    }
-
-    // The API returns JSON: { success: boolean, result: string (HTML) }
-    const json = await response.json() as { success: boolean; result: string };
-
-    if (!json.success || !json.result) {
-      throw new Error('Browser rendering returned empty result');
-    }
-
-    return json.result;
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`Browser rendering failed: ${response.status} - ${errorBody}`);
   }
 
-  throw new Error('Browser rendering failed after all retries');
+  // The API returns JSON: { success: boolean, result: string (HTML) }
+  const json = await response.json() as { success: boolean; result: string };
+
+  if (!json.success || !json.result) {
+    throw new Error('Browser rendering returned empty result');
+  }
+
+  return json.result;
 }
 
 // Extended schema for import with optional HTML content
@@ -275,10 +249,12 @@ chatsRoutes.delete('/chats/:id', adminAuth, async (c) => {
 function formatChatResponse(row: Record<string, unknown>) {
   // Parse the stored JSON content if available
   let messages = [];
+  let participants = undefined;
   if (row.content && typeof row.content === 'string') {
     try {
       const parsed = JSON.parse(row.content);
       messages = parsed.messages || [];
+      participants = parsed.participants;
     } catch {
       // Ignore parse errors
     }
@@ -294,5 +270,6 @@ function formatChatResponse(row: Record<string, unknown>) {
     messageCount: row.message_count,
     wordCount: row.word_count,
     messages,
+    participants,
   };
 }

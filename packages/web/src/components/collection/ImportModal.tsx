@@ -7,10 +7,11 @@ interface ImportModalProps {
 }
 
 type ImportStatus = 'idle' | 'importing' | 'done';
+type ItemStatus = 'pending' | 'importing' | 'success' | 'duplicate' | 'error';
 
-interface ImportResult {
+interface ImportItem {
   url: string;
-  status: 'success' | 'duplicate' | 'error';
+  status: ItemStatus;
   title?: string;
   messageCount?: number;
   chatId?: string;
@@ -24,9 +25,7 @@ export default function ImportModal({ onClose }: ImportModalProps) {
 
   const [urlsInput, setUrlsInput] = useState('');
   const [importStatus, setImportStatus] = useState<ImportStatus>('idle');
-  const [results, setResults] = useState<ImportResult[]>([]);
-  const [currentUrl, setCurrentUrl] = useState<string | null>(null);
-  const [progress, setProgress] = useState({ current: 0, total: 0 });
+  const [items, setItems] = useState<ImportItem[]>([]);
 
   const queryClient = useQueryClient();
 
@@ -45,76 +44,112 @@ export default function ImportModal({ onClose }: ImportModalProps) {
       .filter(line => line.includes('claude.ai/share/'));
   };
 
+  // Import a single URL
+  const importSingleUrl = async (url: string): Promise<Partial<ImportItem>> => {
+    try {
+      const apiResult = await api.importChat(url);
+      if (apiResult.cached) {
+        return {
+          status: 'duplicate',
+          title: apiResult.title,
+          messageCount: apiResult.messageCount,
+          chatId: apiResult.id,
+        };
+      } else {
+        return {
+          status: 'success',
+          title: apiResult.title,
+          messageCount: apiResult.messageCount,
+          chatId: apiResult.id,
+        };
+      }
+    } catch (err) {
+      return {
+        status: 'error',
+        error: err instanceof Error ? err.message : 'Import failed',
+      };
+    }
+  };
+
   const handleImport = useCallback(async () => {
     const urls = parseUrls(urlsInput);
-
-    if (urls.length === 0) {
-      return;
-    }
+    if (urls.length === 0) return;
 
     setImportStatus('importing');
-    setResults([]);
-    setProgress({ current: 0, total: urls.length });
 
-    const importResults: ImportResult[] = [];
+    // Initialize all items as pending
+    const initialItems: ImportItem[] = urls.map(url => ({
+      url,
+      status: 'pending',
+    }));
+    setItems(initialItems);
 
+    // Import each URL sequentially
     for (let i = 0; i < urls.length; i++) {
       const url = urls[i];
-      setCurrentUrl(url);
-      setProgress({ current: i + 1, total: urls.length });
 
-      try {
-        const apiResult = await api.importChat(url);
+      // Mark current as importing
+      setItems(prev => prev.map((item, idx) =>
+        idx === i ? { ...item, status: 'importing' } : item
+      ));
 
-        if (apiResult.cached) {
-          importResults.push({
-            url,
-            status: 'duplicate',
-            title: apiResult.title,
-            messageCount: apiResult.messageCount,
-            chatId: apiResult.id,
-          });
-        } else {
-          importResults.push({
-            url,
-            status: 'success',
-            title: apiResult.title,
-            messageCount: apiResult.messageCount,
-            chatId: apiResult.id,
-          });
-        }
-      } catch (err) {
-        importResults.push({
-          url,
-          status: 'error',
-          error: err instanceof Error ? err.message : 'Import failed',
-        });
-      }
+      const result = await importSingleUrl(url);
 
-      setResults([...importResults]);
+      // Update with result
+      setItems(prev => prev.map((item, idx) =>
+        idx === i ? { ...item, ...result } : item
+      ));
     }
 
-    setCurrentUrl(null);
     setImportStatus('done');
+    queryClient.invalidateQueries({ queryKey: ['chats'] });
+  }, [urlsInput, queryClient]);
 
-    // Refresh chat list if any were successful
-    if (importResults.some(r => r.status === 'success')) {
+  // Retry a single failed import
+  const handleRetry = useCallback(async (index: number) => {
+    const item = items[index];
+    if (!item || item.status !== 'error') return;
+
+    // Mark as importing
+    setItems(prev => prev.map((it, idx) =>
+      idx === index ? { ...it, status: 'importing', error: undefined } : it
+    ));
+
+    const result = await importSingleUrl(item.url);
+
+    // Update with result
+    setItems(prev => prev.map((it, idx) =>
+      idx === index ? { ...it, ...result } : it
+    ));
+
+    // Refresh chat list if successful
+    if (result.status === 'success') {
       queryClient.invalidateQueries({ queryKey: ['chats'] });
     }
-  }, [urlsInput, queryClient]);
+  }, [items, queryClient]);
+
+  // Retry all failed imports
+  const handleRetryAll = useCallback(async () => {
+    const failedIndices = items
+      .map((item, idx) => item.status === 'error' ? idx : -1)
+      .filter(idx => idx !== -1);
+
+    for (const index of failedIndices) {
+      await handleRetry(index);
+    }
+  }, [items, handleRetry]);
 
   const reset = () => {
     setUrlsInput('');
     setImportStatus('idle');
-    setResults([]);
-    setCurrentUrl(null);
-    setProgress({ current: 0, total: 0 });
+    setItems([]);
   };
 
   const validUrlCount = parseUrls(urlsInput).length;
-  const successCount = results.filter(r => r.status === 'success').length;
-  const duplicateCount = results.filter(r => r.status === 'duplicate').length;
-  const errorCount = results.filter(r => r.status === 'error').length;
+  const successCount = items.filter(r => r.status === 'success').length;
+  const duplicateCount = items.filter(r => r.status === 'duplicate').length;
+  const errorCount = items.filter(r => r.status === 'error').length;
+  const pendingCount = items.filter(r => r.status === 'pending' || r.status === 'importing').length;
 
   // Show admin key input if not set
   if (showAdminKey && !adminKeySet) {
@@ -210,126 +245,128 @@ export default function ImportModal({ onClose }: ImportModalProps) {
             </>
           )}
 
-          {/* Importing state */}
-          {importStatus === 'importing' && (
-            <div className="py-8">
-              <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-center text-gray-600 dark:text-gray-300">
-                Importing {progress.current} of {progress.total}...
-              </p>
-              {currentUrl && (
-                <p className="text-center text-sm text-gray-400 mt-2 truncate px-4">
-                  {currentUrl}
-                </p>
-              )}
-
-              {/* Show progress results */}
-              {results.length > 0 && (
-                <div className="mt-4 space-y-1 max-h-40 overflow-y-auto">
-                  {results.map((result, i) => (
-                    <div key={i} className="flex items-center gap-2 text-sm px-2">
-                      {result.status === 'success' && (
-                        <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
-                      {result.status === 'duplicate' && (
-                        <svg className="w-4 h-4 text-yellow-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01" />
-                        </svg>
-                      )}
-                      {result.status === 'error' && (
-                        <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      )}
-                      <span className="truncate text-gray-600 dark:text-gray-400">
-                        {result.title || result.url}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Done state */}
-          {importStatus === 'done' && (
+          {/* Importing / Done state - show progress for each item */}
+          {(importStatus === 'importing' || importStatus === 'done') && (
             <div className="space-y-4">
               {/* Summary */}
-              <div className="flex gap-4 justify-center text-sm flex-wrap">
-                {successCount > 0 && (
-                  <span className="text-green-600 dark:text-green-400">
-                    {successCount} imported
-                  </span>
-                )}
-                {duplicateCount > 0 && (
-                  <span className="text-yellow-600 dark:text-yellow-400">
-                    {duplicateCount} already exist
-                  </span>
-                )}
-                {errorCount > 0 && (
-                  <span className="text-red-600 dark:text-red-400">
-                    {errorCount} failed
-                  </span>
-                )}
-              </div>
+              {importStatus === 'done' && (
+                <div className="flex gap-4 justify-center text-sm flex-wrap">
+                  {successCount > 0 && (
+                    <span className="text-green-600 dark:text-green-400">
+                      {successCount} imported
+                    </span>
+                  )}
+                  {duplicateCount > 0 && (
+                    <span className="text-yellow-600 dark:text-yellow-400">
+                      {duplicateCount} already exist
+                    </span>
+                  )}
+                  {errorCount > 0 && (
+                    <span className="text-red-600 dark:text-red-400">
+                      {errorCount} failed
+                    </span>
+                  )}
+                </div>
+              )}
 
-              {/* Results list */}
-              <div className="space-y-2 max-h-60 overflow-y-auto">
-                {results.map((result, index) => (
+              {/* Progress indicator */}
+              {importStatus === 'importing' && (
+                <div className="text-center text-sm text-gray-500 dark:text-gray-400">
+                  Importing {items.length - pendingCount + 1} of {items.length}...
+                </div>
+              )}
+
+              {/* Items list with individual progress */}
+              <div className="space-y-2 max-h-80 overflow-y-auto">
+                {items.map((item, index) => (
                   <div
                     key={index}
                     className={`p-3 rounded-lg text-sm ${
-                      result.status === 'success'
+                      item.status === 'success'
                         ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
-                        : result.status === 'duplicate'
+                        : item.status === 'duplicate'
                         ? 'bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800'
-                        : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
+                        : item.status === 'error'
+                        ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
+                        : item.status === 'importing'
+                        ? 'bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800'
+                        : 'bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600'
                     }`}
                   >
                     <div className="flex items-start gap-2">
-                      {result.status === 'success' && (
+                      {/* Status icon */}
+                      {item.status === 'success' && (
                         <svg className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
                       )}
-                      {result.status === 'duplicate' && (
+                      {item.status === 'duplicate' && (
                         <svg className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                       )}
-                      {result.status === 'error' && (
+                      {item.status === 'error' && (
                         <svg className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                       )}
+                      {item.status === 'importing' && (
+                        <div className="w-5 h-5 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin flex-shrink-0"></div>
+                      )}
+                      {item.status === 'pending' && (
+                        <div className="w-5 h-5 border-2 border-gray-300 dark:border-gray-500 rounded-full flex-shrink-0"></div>
+                      )}
+
+                      {/* Content */}
                       <div className="flex-1 min-w-0">
                         <div className="font-medium text-gray-900 dark:text-white truncate">
-                          {result.title || result.url}
+                          {item.title || item.url.split('/').pop()}
                         </div>
-                        {result.status === 'success' && (
-                          <div className="text-gray-500 dark:text-gray-400">
-                            {result.messageCount} messages
+
+                        {/* Progress bar for importing state */}
+                        {item.status === 'importing' && (
+                          <div className="mt-2 w-full bg-gray-200 dark:bg-gray-600 rounded-full h-1.5 overflow-hidden">
+                            <div className="bg-indigo-600 h-1.5 rounded-full animate-pulse" style={{ width: '60%' }}></div>
                           </div>
                         )}
-                        {result.status === 'duplicate' && (
+
+                        {item.status === 'success' && (
+                          <div className="text-gray-500 dark:text-gray-400">
+                            {item.messageCount} messages
+                          </div>
+                        )}
+                        {item.status === 'duplicate' && (
                           <div className="text-yellow-700 dark:text-yellow-300">
                             Already imported
                           </div>
                         )}
-                        {result.status === 'error' && (
-                          <div className="text-red-700 dark:text-red-300">
-                            {result.error}
+                        {item.status === 'error' && (
+                          <div className="text-red-700 dark:text-red-300 text-xs">
+                            {item.error}
+                          </div>
+                        )}
+                        {item.status === 'pending' && (
+                          <div className="text-gray-400 dark:text-gray-500">
+                            Waiting...
                           </div>
                         )}
                       </div>
-                      {(result.status === 'success' || result.status === 'duplicate') && result.chatId && (
+
+                      {/* Actions */}
+                      {(item.status === 'success' || item.status === 'duplicate') && item.chatId && (
                         <button
-                          onClick={() => window.open(`/chat/${result.chatId}`, '_blank')}
+                          onClick={() => window.open(`/chat/${item.chatId}`, '_blank')}
                           className="text-indigo-600 dark:text-indigo-400 hover:underline text-xs flex-shrink-0"
                         >
                           Open
+                        </button>
+                      )}
+                      {item.status === 'error' && (
+                        <button
+                          onClick={() => handleRetry(index)}
+                          className="px-2 py-1 text-xs bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-900/50 flex-shrink-0"
+                        >
+                          Retry
                         </button>
                       )}
                     </div>
@@ -339,17 +376,27 @@ export default function ImportModal({ onClose }: ImportModalProps) {
 
               {/* Actions */}
               <div className="flex gap-3 justify-center pt-2">
-                <button
-                  onClick={reset}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-                >
-                  Import More
-                </button>
+                {errorCount > 0 && (
+                  <button
+                    onClick={handleRetryAll}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                  >
+                    Retry All Failed ({errorCount})
+                  </button>
+                )}
+                {importStatus === 'done' && (
+                  <button
+                    onClick={reset}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                  >
+                    Import More
+                  </button>
+                )}
                 <button
                   onClick={onClose}
                   className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
                 >
-                  Done
+                  {importStatus === 'importing' ? 'Cancel' : 'Done'}
                 </button>
               </div>
             </div>

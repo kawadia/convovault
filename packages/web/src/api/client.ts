@@ -1,4 +1,4 @@
-import type { Message } from '@convovault/shared';
+import type { Message, Participants } from '@convovault/shared';
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api/v1';
 
@@ -73,6 +73,7 @@ export interface ChatSummary {
 
 export interface ChatDetail extends ChatSummary {
   messages: Message[];
+  participants?: Participants;
 }
 
 export const api = {

@@ -52,7 +52,7 @@ export default function Chat() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-8">
-        <ChatViewer messages={chat.messages} />
+        <ChatViewer messages={chat.messages} participants={chat.participants} />
       </main>
     </div>
   );
