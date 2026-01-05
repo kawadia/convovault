@@ -69,11 +69,11 @@ export interface ChatSummary {
   wordCount: number;
   fetchedAt: number;
   cached?: boolean;
+  participants?: Participants;
 }
 
 export interface ChatDetail extends ChatSummary {
   messages: Message[];
-  participants?: Participants;
 }
 
 export const api = {

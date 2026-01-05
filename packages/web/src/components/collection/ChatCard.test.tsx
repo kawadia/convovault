@@ -15,6 +15,14 @@ const mockChat: ChatSummary = {
   fetchedAt: Date.now(),
 };
 
+const mockChatWithParticipants: ChatSummary = {
+  ...mockChat,
+  participants: {
+    user: 'Shreyas',
+    assistant: 'Claude',
+  },
+};
+
 const renderWithRouter = (component: React.ReactNode) => {
   return render(<BrowserRouter>{component}</BrowserRouter>);
 };
@@ -35,9 +43,19 @@ describe('ChatCard', () => {
     expect(screen.getByText('1,500 words')).toBeInTheDocument();
   });
 
-  it('renders source badge', () => {
+  it('renders participants when available', () => {
+    renderWithRouter(<ChatCard chat={mockChatWithParticipants} />);
+    expect(screen.getByText('Shreyas & Claude')).toBeInTheDocument();
+  });
+
+  it('does not render participants when not available', () => {
     renderWithRouter(<ChatCard chat={mockChat} />);
-    expect(screen.getByText('claude-web')).toBeInTheDocument();
+    expect(screen.queryByText(/&/)).not.toBeInTheDocument();
+  });
+
+  it('renders import date', () => {
+    renderWithRouter(<ChatCard chat={mockChat} />);
+    expect(screen.getByText(/Imported/)).toBeInTheDocument();
   });
 
   it('links to chat page', () => {

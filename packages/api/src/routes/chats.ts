@@ -173,19 +173,33 @@ chatsRoutes.post('/chats/import', adminAuth, async (c) => {
 chatsRoutes.get('/chats', async (c) => {
   try {
     const result = await c.env.DB.prepare(
-      'SELECT id, source, source_url, title, created_at, fetched_at, message_count, word_count FROM chats ORDER BY fetched_at DESC'
+      'SELECT id, source, source_url, title, created_at, fetched_at, message_count, word_count, content FROM chats ORDER BY fetched_at DESC'
     ).all();
 
-    const chats = (result.results || []).map((row) => ({
-      id: row.id,
-      source: row.source,
-      sourceUrl: row.source_url,
-      title: row.title,
-      createdAt: row.created_at,
-      fetchedAt: row.fetched_at,
-      messageCount: row.message_count,
-      wordCount: row.word_count,
-    }));
+    const chats = (result.results || []).map((row) => {
+      // Extract participants from content JSON
+      let participants = undefined;
+      if (row.content && typeof row.content === 'string') {
+        try {
+          const parsed = JSON.parse(row.content);
+          participants = parsed.participants;
+        } catch {
+          // Ignore parse errors
+        }
+      }
+
+      return {
+        id: row.id,
+        source: row.source,
+        sourceUrl: row.source_url,
+        title: row.title,
+        createdAt: row.created_at,
+        fetchedAt: row.fetched_at,
+        messageCount: row.message_count,
+        wordCount: row.word_count,
+        participants,
+      };
+    });
 
     return c.json({ chats });
   } catch {
