@@ -154,20 +154,20 @@ export default function ImportModal({ onClose }: ImportModalProps) {
   // Show admin key input if not set
   if (showAdminKey && !adminKeySet) {
     return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full mx-4 p-6">
+      <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+        <div className="bg-bg-secondary rounded-lg shadow-xl max-w-lg w-full mx-4 p-6 border border-border">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            <h2 className="text-xl font-semibold text-text-primary">
               Import Chat
             </h2>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <button onClick={onClose} className="text-text-muted hover:text-text-secondary">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
           <div>
-            <label htmlFor="adminKey" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label htmlFor="adminKey" className="block text-sm font-medium text-text-secondary mb-1">
               Admin Key
             </label>
             <input
@@ -177,12 +177,12 @@ export default function ImportModal({ onClose }: ImportModalProps) {
               onChange={(e) => setAdminKeyInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && adminKey && handleSaveKey()}
               placeholder="Enter admin key..."
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-border rounded-lg bg-bg-tertiary text-text-primary placeholder:text-text-muted focus:ring-2 focus:ring-accent focus:border-transparent"
             />
             <button
               onClick={handleSaveKey}
               disabled={!adminKey}
-              className="mt-2 w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+              className="mt-2 w-full px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-hover disabled:opacity-50"
             >
               Continue
             </button>
@@ -193,13 +193,13 @@ export default function ImportModal({ onClose }: ImportModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full mx-4 p-6 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+      <div className="bg-bg-secondary rounded-lg shadow-xl max-w-lg w-full mx-4 p-6 max-h-[90vh] overflow-y-auto border border-border">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+          <h2 className="text-xl font-semibold text-text-primary">
             Import Chats
           </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="text-text-muted hover:text-text-secondary">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -211,7 +211,7 @@ export default function ImportModal({ onClose }: ImportModalProps) {
           {importStatus === 'idle' && (
             <>
               <div>
-                <label htmlFor="urls" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label htmlFor="urls" className="block text-sm font-medium text-text-secondary mb-1">
                   Claude Share URLs
                 </label>
                 <textarea
@@ -220,9 +220,9 @@ export default function ImportModal({ onClose }: ImportModalProps) {
                   onChange={(e) => setUrlsInput(e.target.value)}
                   placeholder="https://claude.ai/share/abc123&#10;https://claude.ai/share/def456&#10;..."
                   rows={5}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono text-sm"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-bg-tertiary text-text-primary placeholder:text-text-muted focus:ring-2 focus:ring-accent focus:border-transparent font-mono text-sm"
                 />
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                <p className="mt-1 text-sm text-text-muted">
                   One URL per line
                 </p>
               </div>
@@ -231,13 +231,13 @@ export default function ImportModal({ onClose }: ImportModalProps) {
                 <button
                   onClick={handleImport}
                   disabled={validUrlCount === 0}
-                  className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Import {validUrlCount > 0 ? `(${validUrlCount})` : ''}
                 </button>
                 <button
                   onClick={onClose}
-                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                  className="px-4 py-2 border border-border text-text-secondary rounded-lg hover:bg-bg-tertiary"
                 >
                   Cancel
                 </button>
@@ -252,17 +252,17 @@ export default function ImportModal({ onClose }: ImportModalProps) {
               {importStatus === 'done' && (
                 <div className="flex gap-4 justify-center text-sm flex-wrap">
                   {successCount > 0 && (
-                    <span className="text-green-600 dark:text-green-400">
+                    <span className="text-green-400">
                       {successCount} imported
                     </span>
                   )}
                   {duplicateCount > 0 && (
-                    <span className="text-yellow-600 dark:text-yellow-400">
+                    <span className="text-yellow-400">
                       {duplicateCount} already exist
                     </span>
                   )}
                   {errorCount > 0 && (
-                    <span className="text-red-600 dark:text-red-400">
+                    <span className="text-red-400">
                       {errorCount} failed
                     </span>
                   )}
@@ -271,7 +271,7 @@ export default function ImportModal({ onClose }: ImportModalProps) {
 
               {/* Progress indicator */}
               {importStatus === 'importing' && (
-                <div className="text-center text-sm text-gray-500 dark:text-gray-400">
+                <div className="text-center text-sm text-text-secondary">
                   Importing {items.length - pendingCount + 1} of {items.length}...
                 </div>
               )}
@@ -283,70 +283,70 @@ export default function ImportModal({ onClose }: ImportModalProps) {
                     key={index}
                     className={`p-3 rounded-lg text-sm ${
                       item.status === 'success'
-                        ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
+                        ? 'bg-green-900/20 border border-green-800'
                         : item.status === 'duplicate'
-                        ? 'bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800'
+                        ? 'bg-yellow-900/20 border border-yellow-800'
                         : item.status === 'error'
-                        ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
+                        ? 'bg-red-900/20 border border-red-800'
                         : item.status === 'importing'
-                        ? 'bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800'
-                        : 'bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600'
+                        ? 'bg-accent/10 border border-accent/30'
+                        : 'bg-bg-tertiary border border-border'
                     }`}
                   >
                     <div className="flex items-start gap-2">
                       {/* Status icon */}
                       {item.status === 'success' && (
-                        <svg className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-5 h-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
                       )}
                       {item.status === 'duplicate' && (
-                        <svg className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-5 h-5 text-yellow-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                       )}
                       {item.status === 'error' && (
-                        <svg className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-5 h-5 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                       )}
                       {item.status === 'importing' && (
-                        <div className="w-5 h-5 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin flex-shrink-0"></div>
+                        <div className="w-5 h-5 border-2 border-accent/30 border-t-accent rounded-full animate-spin flex-shrink-0"></div>
                       )}
                       {item.status === 'pending' && (
-                        <div className="w-5 h-5 border-2 border-gray-300 dark:border-gray-500 rounded-full flex-shrink-0"></div>
+                        <div className="w-5 h-5 border-2 border-border rounded-full flex-shrink-0"></div>
                       )}
 
                       {/* Content */}
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium text-gray-900 dark:text-white truncate">
+                        <div className="font-medium text-text-primary truncate">
                           {item.title || item.url.split('/').pop()}
                         </div>
 
                         {/* Progress bar for importing state */}
                         {item.status === 'importing' && (
-                          <div className="mt-2 w-full bg-gray-200 dark:bg-gray-600 rounded-full h-1.5 overflow-hidden">
-                            <div className="bg-indigo-600 h-1.5 rounded-full animate-pulse" style={{ width: '60%' }}></div>
+                          <div className="mt-2 w-full bg-bg-tertiary rounded-full h-1.5 overflow-hidden">
+                            <div className="bg-accent h-1.5 rounded-full animate-pulse" style={{ width: '60%' }}></div>
                           </div>
                         )}
 
                         {item.status === 'success' && (
-                          <div className="text-gray-500 dark:text-gray-400">
+                          <div className="text-text-secondary">
                             {item.messageCount} messages
                           </div>
                         )}
                         {item.status === 'duplicate' && (
-                          <div className="text-yellow-700 dark:text-yellow-300">
+                          <div className="text-yellow-300">
                             Already imported
                           </div>
                         )}
                         {item.status === 'error' && (
-                          <div className="text-red-700 dark:text-red-300 text-xs">
+                          <div className="text-red-300 text-xs">
                             {item.error}
                           </div>
                         )}
                         {item.status === 'pending' && (
-                          <div className="text-gray-400 dark:text-gray-500">
+                          <div className="text-text-muted">
                             Waiting...
                           </div>
                         )}
@@ -356,7 +356,7 @@ export default function ImportModal({ onClose }: ImportModalProps) {
                       {(item.status === 'success' || item.status === 'duplicate') && item.chatId && (
                         <button
                           onClick={() => window.open(`/chat/${item.chatId}`, '_blank')}
-                          className="text-indigo-600 dark:text-indigo-400 hover:underline text-xs flex-shrink-0"
+                          className="text-accent hover:underline text-xs flex-shrink-0"
                         >
                           Open
                         </button>
@@ -364,7 +364,7 @@ export default function ImportModal({ onClose }: ImportModalProps) {
                       {item.status === 'error' && (
                         <button
                           onClick={() => handleRetry(index)}
-                          className="px-2 py-1 text-xs bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-900/50 flex-shrink-0"
+                          className="px-2 py-1 text-xs bg-red-900/30 text-red-300 rounded hover:bg-red-900/50 flex-shrink-0"
                         >
                           Retry
                         </button>
@@ -387,14 +387,14 @@ export default function ImportModal({ onClose }: ImportModalProps) {
                 {importStatus === 'done' && (
                   <button
                     onClick={reset}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                    className="px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-hover"
                   >
                     Import More
                   </button>
                 )}
                 <button
                   onClick={onClose}
-                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                  className="px-4 py-2 border border-border text-text-secondary rounded-lg hover:bg-bg-tertiary"
                 >
                   {importStatus === 'importing' ? 'Cancel' : 'Done'}
                 </button>

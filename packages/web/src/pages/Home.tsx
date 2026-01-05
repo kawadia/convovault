@@ -74,16 +74,16 @@ export default function Home() {
   const isShowingSearch = searchQuery.length >= 2;
 
   return (
-    <div className="min-h-screen">
-      <header className="bg-white dark:bg-gray-800 shadow">
+    <div className="min-h-screen bg-bg-primary">
+      <header className="bg-bg-secondary border-b border-border">
         <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center mb-4">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            <h1 className="text-2xl font-bold text-text-primary">
               ConvoVault
             </h1>
             <button
               onClick={() => setShowImport(true)}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              className="px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-hover transition-colors"
             >
               Import Chat
             </button>
@@ -92,7 +92,7 @@ export default function Home() {
           {/* Search bar */}
           <div className="relative">
             <svg
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -109,12 +109,12 @@ export default function Home() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search messages..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-bg-tertiary text-text-primary placeholder:text-text-muted focus:ring-2 focus:ring-accent focus:border-transparent"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-secondary"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -129,7 +129,7 @@ export default function Home() {
         {/* Search Results */}
         {isShowingSearch && (
           <div className="mb-8">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            <h2 className="text-lg font-semibold text-text-primary mb-4">
               {isSearching ? (
                 'Searching...'
               ) : searchResults.length > 0 ? (
@@ -145,29 +145,29 @@ export default function Home() {
                   <Link
                     key={`${result.chatId}-${result.messageIndex}-${idx}`}
                     to={`/chat/${result.chatId}#msg-${result.messageIndex}`}
-                    className="block bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border border-gray-200 dark:border-gray-700"
+                    className="block bg-bg-secondary rounded-lg hover:bg-bg-tertiary transition-colors p-4 border border-border"
                   >
                     <div className="flex items-start gap-3">
                       <div
                         className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
                           result.role === 'user'
-                            ? 'bg-blue-500 text-white'
-                            : 'bg-purple-500 text-white'
+                            ? 'bg-accent text-white'
+                            : 'bg-text-muted text-white'
                         }`}
                       >
                         {result.role === 'user' ? 'U' : 'A'}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-gray-900 dark:text-white mb-1">
+                        <div className="text-sm font-medium text-text-primary mb-1">
                           {result.chatTitle}
                         </div>
                         <div
-                          className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2"
+                          className="text-sm text-text-secondary line-clamp-2"
                           dangerouslySetInnerHTML={{
                             __html: (result.snippet || '')
-                              .replace(/\*\*/g, '<mark class="bg-yellow-200 dark:bg-yellow-800 rounded px-0.5">')
+                              .replace(/\*\*/g, '<mark class="bg-accent/30 text-accent rounded px-0.5">')
                               .replace(/<mark[^>]*>([^<]*)<\/mark>/g, (_, text) =>
-                                `<mark class="bg-yellow-200 dark:bg-yellow-800 rounded px-0.5">${text}</mark>`
+                                `<mark class="bg-accent/30 text-accent rounded px-0.5">${text}</mark>`
                               )
                               // Fix: properly close marks
                               .replace(/\*\*/g, '</mark>')
@@ -175,7 +175,7 @@ export default function Home() {
                         />
                       </div>
                       <svg
-                        className="w-5 h-5 text-gray-400 flex-shrink-0"
+                        className="w-5 h-5 text-text-muted flex-shrink-0"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -199,9 +199,9 @@ export default function Home() {
         {!isShowingSearch && (
           <>
             {isLoading ? (
-              <div className="text-center text-gray-500 py-12">Loading...</div>
+              <div className="text-center text-text-secondary py-12">Loading...</div>
             ) : chats.length === 0 ? (
-              <div className="text-center text-gray-500 dark:text-gray-400 py-12">
+              <div className="text-center text-text-secondary py-12">
                 <p>No chats imported yet.</p>
                 <p className="mt-2">Click "Import Chat" to add your first conversation.</p>
               </div>

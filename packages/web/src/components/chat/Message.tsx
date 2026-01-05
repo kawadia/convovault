@@ -58,16 +58,16 @@ export default function Message({ message, globalFoldState, participants, isHigh
     <div
       ref={messageRef}
       id={`msg-${message.index}`}
-      className={`group ${isUser ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-white dark:bg-gray-800'} rounded-lg p-4 shadow-sm transition-all duration-500 ${
-        isHighlighted ? 'ring-2 ring-yellow-400 ring-offset-2 dark:ring-offset-gray-900 bg-yellow-50 dark:bg-yellow-900/30' : ''
+      className={`group ${isUser ? 'bg-bg-tertiary' : 'bg-bg-secondary'} rounded-lg p-4 transition-all duration-500 ${
+        isHighlighted ? 'ring-2 ring-accent ring-offset-2 ring-offset-bg-primary' : ''
       }`}
     >
       <div className="flex items-start gap-3">
         <div
           className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
             isUser
-              ? 'bg-blue-500 text-white'
-              : 'bg-purple-500 text-white'
+              ? 'bg-accent text-white'
+              : 'bg-text-muted text-white'
           }`}
           title={displayName}
         >
@@ -76,13 +76,13 @@ export default function Message({ message, globalFoldState, participants, isHigh
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-2">
-            <span className="font-medium text-gray-900 dark:text-white">
+            <span className="font-medium text-text-primary">
               {displayName}
             </span>
             {isLong && (
               <button
                 onClick={() => setIsCollapsed(!isCollapsed)}
-                className="flex items-center gap-1 px-2 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                className="flex items-center gap-1 px-2 py-0.5 text-xs rounded bg-bg-tertiary text-text-secondary hover:bg-bg-hover transition-colors"
               >
                 <svg
                   className={`w-3 h-3 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
@@ -107,11 +107,11 @@ export default function Message({ message, globalFoldState, participants, isHigh
 
           {isCollapsed && (
             <div
-              className="text-gray-500 dark:text-gray-400 italic cursor-pointer hover:text-gray-700 dark:hover:text-gray-200"
+              className="text-text-secondary italic cursor-pointer hover:text-text-primary"
               onClick={() => setIsCollapsed(false)}
             >
               {previewText}...
-              <span className="ml-2 text-xs text-indigo-500 dark:text-indigo-400">
+              <span className="ml-2 text-xs text-accent">
                 (click to expand)
               </span>
             </div>
@@ -125,9 +125,9 @@ export default function Message({ message, globalFoldState, participants, isHigh
 function ContentBlockRenderer({ block }: { block: ContentBlock }) {
   if (block.type === 'code') {
     return (
-      <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm">
+      <pre className="bg-black/50 text-text-primary p-4 rounded-lg overflow-x-auto text-sm border border-border">
         {block.language && (
-          <div className="text-gray-400 text-xs mb-2">{block.language}</div>
+          <div className="text-text-muted text-xs mb-2">{block.language}</div>
         )}
         <code>{block.content}</code>
       </pre>
@@ -136,12 +136,12 @@ function ContentBlockRenderer({ block }: { block: ContentBlock }) {
 
   // Default: text - render as markdown
   return (
-    <div className="text-gray-700 dark:text-gray-300 prose prose-sm dark:prose-invert max-w-none">
+    <div className="text-text-secondary prose prose-sm prose-invert max-w-none">
       <Markdown
         components={{
           // Style code blocks within markdown
           pre: ({ children }) => (
-            <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm">
+            <pre className="bg-black/50 text-text-primary p-4 rounded-lg overflow-x-auto text-sm border border-border">
               {children}
             </pre>
           ),
@@ -149,7 +149,7 @@ function ContentBlockRenderer({ block }: { block: ContentBlock }) {
             const isInline = !className;
             if (isInline) {
               return (
-                <code className="bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded text-sm">
+                <code className="bg-bg-tertiary px-1 py-0.5 rounded text-sm text-text-primary">
                   {children}
                 </code>
               );
@@ -164,7 +164,7 @@ function ContentBlockRenderer({ block }: { block: ContentBlock }) {
             <ol className="list-decimal list-inside space-y-1 my-2">{children}</ol>
           ),
           li: ({ children }) => (
-            <li className="text-gray-700 dark:text-gray-300">{children}</li>
+            <li className="text-text-secondary">{children}</li>
           ),
           // Style paragraphs
           p: ({ children }) => (
@@ -172,23 +172,23 @@ function ContentBlockRenderer({ block }: { block: ContentBlock }) {
           ),
           // Style headings
           h1: ({ children }) => (
-            <h1 className="text-xl font-bold mt-4 mb-2">{children}</h1>
+            <h1 className="text-xl font-bold mt-4 mb-2 text-text-primary">{children}</h1>
           ),
           h2: ({ children }) => (
-            <h2 className="text-lg font-bold mt-3 mb-2">{children}</h2>
+            <h2 className="text-lg font-bold mt-3 mb-2 text-text-primary">{children}</h2>
           ),
           h3: ({ children }) => (
-            <h3 className="text-base font-bold mt-3 mb-1">{children}</h3>
+            <h3 className="text-base font-bold mt-3 mb-1 text-text-primary">{children}</h3>
           ),
           // Style blockquotes
           blockquote: ({ children }) => (
-            <blockquote className="border-l-4 border-gray-300 dark:border-gray-600 pl-4 my-2 italic">
+            <blockquote className="border-l-4 border-accent pl-4 my-2 italic text-text-secondary">
               {children}
             </blockquote>
           ),
           // Style links
           a: ({ href, children }) => (
-            <a href={href} className="text-indigo-600 dark:text-indigo-400 hover:underline" target="_blank" rel="noopener noreferrer">
+            <a href={href} className="text-accent hover:underline" target="_blank" rel="noopener noreferrer">
               {children}
             </a>
           ),

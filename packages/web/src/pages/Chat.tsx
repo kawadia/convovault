@@ -134,17 +134,17 @@ export default function Chat() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-gray-500">Loading...</div>
+      <div className="min-h-screen bg-bg-primary flex items-center justify-center">
+        <div className="text-text-secondary">Loading...</div>
       </div>
     );
   }
 
   if (error || !chat) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+      <div className="min-h-screen bg-bg-primary flex flex-col items-center justify-center gap-4">
         <div className="text-red-500">Chat not found</div>
-        <Link to="/" className="text-indigo-600 hover:underline">
+        <Link to="/" className="text-accent hover:underline">
           Back to home
         </Link>
       </div>
@@ -152,30 +152,30 @@ export default function Chat() {
   }
 
   return (
-    <div className="min-h-screen">
-      <header className="bg-white dark:bg-gray-800 shadow sticky top-0 z-10">
+    <div className="min-h-screen bg-bg-primary">
+      <header className="bg-bg-secondary border-b border-border sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex items-center gap-4">
-          <Link to="/" className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+          <Link to="/" className="text-text-secondary hover:text-text-primary">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
           </Link>
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-semibold text-gray-900 dark:text-white truncate">
+            <h1 className="text-xl font-semibold text-text-primary truncate">
               {chat.title}
             </h1>
             <a
               href={chat.sourceUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+              className="text-sm text-accent hover:underline flex items-center gap-1"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
               </svg>
               View on Claude
             </a>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-text-secondary">
               {chat.messageCount} messages &middot; {chat.wordCount.toLocaleString()} words
             </p>
           </div>
@@ -184,8 +184,8 @@ export default function Chat() {
             onClick={() => setShowSearch(prev => !prev)}
             className={`p-3 rounded-xl transition-all ${
               showSearch
-                ? 'bg-indigo-600 text-white shadow-lg'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-indigo-100 dark:hover:bg-indigo-900 hover:text-indigo-600 dark:hover:text-indigo-400'
+                ? 'bg-accent text-white shadow-lg'
+                : 'bg-bg-tertiary text-text-secondary hover:bg-bg-hover hover:text-accent'
             }`}
             title="Search in chat (Cmd/Ctrl+F)"
           >
@@ -197,11 +197,11 @@ export default function Chat() {
 
         {/* Search bar */}
         {showSearch && (
-          <div className="border-t border-gray-200 dark:border-gray-700 px-4 py-3 sm:px-6 lg:px-8">
+          <div className="border-t border-border px-4 py-3 sm:px-6 lg:px-8">
             <div className="max-w-7xl mx-auto flex items-center gap-3">
               <div className="relative flex-1">
                 <svg
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -213,14 +213,14 @@ export default function Chat() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search in this chat..."
-                  className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full pl-9 pr-4 py-2 text-sm border border-border rounded-lg bg-bg-tertiary text-text-primary placeholder:text-text-muted focus:ring-2 focus:ring-accent focus:border-transparent"
                   autoFocus
                 />
               </div>
               {/* Match count and navigation */}
               {searchQuery.length >= 2 && (
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                  <span className="text-sm text-text-secondary whitespace-nowrap">
                     {isSearching ? (
                       'Searching...'
                     ) : searchResults.length === 0 ? (
@@ -234,7 +234,7 @@ export default function Chat() {
                       <button
                         onClick={goToPrevMatch}
                         disabled={currentMatchIndex === 0}
-                        className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="p-1.5 rounded hover:bg-bg-tertiary disabled:opacity-40 disabled:cursor-not-allowed text-text-secondary"
                         title="Previous match (Shift+Enter)"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -244,7 +244,7 @@ export default function Chat() {
                       <button
                         onClick={goToNextMatch}
                         disabled={currentMatchIndex === searchResults.length - 1}
-                        className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="p-1.5 rounded hover:bg-bg-tertiary disabled:opacity-40 disabled:cursor-not-allowed text-text-secondary"
                         title="Next match (Enter)"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -263,7 +263,7 @@ export default function Chat() {
                   setSearchResults([]);
                   setHighlightedMessageIndex(null);
                 }}
-                className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500"
+                className="p-1.5 rounded hover:bg-bg-tertiary text-text-muted"
                 title="Close (Escape)"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

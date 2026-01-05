@@ -23,7 +23,7 @@ export default function ChatViewer({ messages, participants, highlightedMessageI
 
   if (messages.length === 0) {
     return (
-      <div className="text-center text-gray-500 py-12">
+      <div className="text-center text-text-secondary py-12">
         No messages in this conversation.
       </div>
     );
@@ -41,14 +41,14 @@ export default function ChatViewer({ messages, participants, highlightedMessageI
     <div className="space-y-4">
       {/* Toolbar with fold controls */}
       {longMessageCount > 0 && (
-        <div className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-900 py-2 px-1 -mx-1 flex items-center justify-between border-b border-gray-200 dark:border-gray-700">
-          <span className="text-sm text-gray-500 dark:text-gray-400">
+        <div className="sticky top-0 z-10 bg-bg-primary py-2 px-1 -mx-1 flex items-center justify-between border-b border-border">
+          <span className="text-sm text-text-secondary">
             {messages.length} messages ({longMessageCount} long)
           </span>
           <div className="flex gap-2">
             <button
               onClick={handleFoldAll}
-              className="flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg bg-bg-secondary border border-border text-text-secondary hover:bg-bg-tertiary transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
@@ -57,7 +57,7 @@ export default function ChatViewer({ messages, participants, highlightedMessageI
             </button>
             <button
               onClick={handleUnfoldAll}
-              className="flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg bg-bg-secondary border border-border text-text-secondary hover:bg-bg-tertiary transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />

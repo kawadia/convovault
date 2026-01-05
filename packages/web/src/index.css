@@ -1,11 +1,28 @@
 @import "tailwindcss";
 
-:root {
-  --color-primary: #6366f1;
-  --color-primary-dark: #4f46e5;
+@theme {
+  /* Substack-inspired colors */
+  --color-accent: #ff6719;
+  --color-accent-hover: #ff5500;
+
+  /* Dark mode backgrounds */
+  --color-bg-primary: #121212;
+  --color-bg-secondary: #1a1a1a;
+  --color-bg-tertiary: #242424;
+  --color-bg-hover: #2a2a2a;
+
+  /* Text colors */
+  --color-text-primary: #f0f0f0;
+  --color-text-secondary: #a0a0a0;
+  --color-text-muted: #6b6b6b;
+
+  /* Borders */
+  --color-border: #333333;
+  --color-border-subtle: #2a2a2a;
 }
 
 body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     'Helvetica Neue', Arial, sans-serif;
+  @apply bg-bg-primary text-text-primary;
 }
