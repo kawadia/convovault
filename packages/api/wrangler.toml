@@ -12,6 +12,12 @@ ENVIRONMENT = "development"
 # - CF_ACCOUNT_ID: Cloudflare account ID for Browser Rendering API
 # - CF_API_TOKEN: Cloudflare API token with Browser Rendering permissions
 
+# Observability / Logging
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+invocation_logs = true
+
 # D1 Database binding
 [[d1_databases]]
 binding = "DB"
