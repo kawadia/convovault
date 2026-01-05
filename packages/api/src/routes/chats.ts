@@ -318,6 +318,32 @@ chatsRoutes.delete('/chats/:id', adminAuth, async (c) => {
 });
 
 /**
+ * Generate a snippet around a search term in text
+ */
+function generateSnippet(text: string, searchTerm: string, contextChars: number = 60): string {
+  const lowerText = text.toLowerCase();
+  const lowerTerm = searchTerm.toLowerCase();
+  const index = lowerText.indexOf(lowerTerm);
+
+  if (index === -1) {
+    // Term not found, return beginning of text
+    return text.substring(0, contextChars * 2) + (text.length > contextChars * 2 ? '...' : '');
+  }
+
+  const start = Math.max(0, index - contextChars);
+  const end = Math.min(text.length, index + searchTerm.length + contextChars);
+
+  let snippet = '';
+  if (start > 0) snippet += '...';
+  snippet += text.substring(start, index);
+  snippet += '**' + text.substring(index, index + searchTerm.length) + '**';
+  snippet += text.substring(index + searchTerm.length, end);
+  if (end < text.length) snippet += '...';
+
+  return snippet;
+}
+
+/**
  * GET /search
  * Search messages across all chats using full-text search
  */
@@ -329,15 +355,15 @@ chatsRoutes.get('/search', async (c) => {
   }
 
   try {
-    // Search using FTS5 MATCH with snippet extraction
-    // The snippet function extracts text around matching terms
+    // Search using FTS5 MATCH - contentless tables don't support snippet()
+    // so we fetch the chat content separately to generate snippets
     const results = await c.env.DB.prepare(`
       SELECT
         m.chat_id,
         m.message_index,
         m.role,
-        snippet(messages_fts, 0, '**', '**', '...', 32) as snippet,
-        c.title as chat_title
+        c.title as chat_title,
+        c.content as chat_content
       FROM messages_fts
       JOIN messages_fts_meta m ON messages_fts.rowid = m.rowid
       JOIN chats c ON m.chat_id = c.id
@@ -348,13 +374,32 @@ chatsRoutes.get('/search', async (c) => {
       .bind(query)
       .all();
 
-    const searchResults = (results.results || []).map((row) => ({
-      chatId: row.chat_id,
-      chatTitle: row.chat_title,
-      messageIndex: row.message_index,
-      role: row.role,
-      snippet: row.snippet,
-    }));
+    const searchResults = (results.results || []).map((row) => {
+      // Extract message content from the stored JSON
+      let snippet = '';
+      try {
+        const chatData = JSON.parse(row.chat_content as string);
+        const message = chatData.messages?.find((m: { index: number }) => m.index === row.message_index);
+        if (message) {
+          // Combine all content blocks
+          const fullText = message.content
+            .map((block: { content: string }) => block.content)
+            .join(' ')
+            .replace(/\n+/g, ' ');
+          snippet = generateSnippet(fullText, query);
+        }
+      } catch {
+        snippet = '';
+      }
+
+      return {
+        chatId: row.chat_id,
+        chatTitle: row.chat_title,
+        messageIndex: row.message_index,
+        role: row.role,
+        snippet,
+      };
+    });
 
     return c.json({ results: searchResults });
   } catch (error) {
