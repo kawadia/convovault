@@ -134,6 +134,33 @@ chatsRoutes.post('/chats/import', adminAuth, async (c) => {
 });
 
 /**
+ * GET /chats
+ * List all chats (public)
+ */
+chatsRoutes.get('/chats', async (c) => {
+  try {
+    const result = await c.env.DB.prepare(
+      'SELECT id, source, source_url, title, created_at, fetched_at, message_count, word_count FROM chats ORDER BY fetched_at DESC'
+    ).all();
+
+    const chats = (result.results || []).map((row) => ({
+      id: row.id,
+      source: row.source,
+      sourceUrl: row.source_url,
+      title: row.title,
+      createdAt: row.created_at,
+      fetchedAt: row.fetched_at,
+      messageCount: row.message_count,
+      wordCount: row.word_count,
+    }));
+
+    return c.json({ chats });
+  } catch {
+    return c.json({ chats: [] });
+  }
+});
+
+/**
  * GET /chats/:id
  * Get a chat transcript (public)
  */

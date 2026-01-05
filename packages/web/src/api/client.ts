@@ -76,6 +76,11 @@ export interface ChatDetail extends ChatSummary {
 }
 
 export const api = {
+  // List all chats
+  async listChats(): Promise<{ chats: ChatSummary[] }> {
+    return fetchApi<{ chats: ChatSummary[] }>('/chats');
+  },
+
   // Import a chat (admin only)
   async importChat(url: string, html?: string): Promise<ChatSummary> {
     return fetchApi<ChatSummary>('/chats/import', {
