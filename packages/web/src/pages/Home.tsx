@@ -164,7 +164,7 @@ export default function Home() {
                         <div
                           className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2"
                           dangerouslySetInnerHTML={{
-                            __html: result.snippet
+                            __html: (result.snippet || '')
                               .replace(/\*\*/g, '<mark class="bg-yellow-200 dark:bg-yellow-800 rounded px-0.5">')
                               .replace(/<mark[^>]*>([^<]*)<\/mark>/g, (_, text) =>
                                 `<mark class="bg-yellow-200 dark:bg-yellow-800 rounded px-0.5">${text}</mark>`
