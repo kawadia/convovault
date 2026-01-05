@@ -9,6 +9,8 @@ dist/
 
 # Test outputs
 coverage/
+test-output.html
+*_ Claude.html
 
 # IDE
 .idea/
