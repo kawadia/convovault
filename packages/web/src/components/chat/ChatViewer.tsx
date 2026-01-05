@@ -5,6 +5,7 @@ import Message from './Message';
 interface ChatViewerProps {
   messages: MessageType[];
   participants?: Participants;
+  highlightedMessageIndex?: number | null;
 }
 
 // Threshold must match Message.tsx
@@ -14,7 +15,7 @@ function getMessageLength(message: MessageType): number {
   return message.content.reduce((sum, block) => sum + block.content.length, 0);
 }
 
-export default function ChatViewer({ messages, participants }: ChatViewerProps) {
+export default function ChatViewer({ messages, participants, highlightedMessageIndex }: ChatViewerProps) {
   const [globalFoldState, setGlobalFoldState] = useState<'all-folded' | 'all-unfolded' | null>(null);
 
   // Count how many messages are "long"
@@ -75,6 +76,7 @@ export default function ChatViewer({ messages, participants }: ChatViewerProps) 
             message={message}
             globalFoldState={globalFoldState}
             participants={participants}
+            isHighlighted={highlightedMessageIndex === message.index}
           />
         ))}
       </div>

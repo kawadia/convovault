@@ -76,6 +76,14 @@ export interface ChatDetail extends ChatSummary {
   messages: Message[];
 }
 
+export interface SearchResult {
+  chatId: string;
+  chatTitle: string;
+  messageIndex: number;
+  role: 'user' | 'assistant';
+  snippet: string;
+}
+
 export const api = {
   // List all chats
   async listChats(): Promise<{ chats: ChatSummary[] }> {
@@ -100,5 +108,10 @@ export const api = {
     return fetchApi<{ deleted: boolean }>(`/chats/${id}`, {
       method: 'DELETE',
     });
+  },
+
+  // Search messages across all chats
+  async search(query: string): Promise<{ results: SearchResult[] }> {
+    return fetchApi<{ results: SearchResult[] }>(`/search?q=${encodeURIComponent(query)}`);
   },
 };

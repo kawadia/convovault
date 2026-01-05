@@ -1,5 +1,5 @@
 import type { Message as MessageType, ContentBlock, Participants } from '@convovault/shared';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Markdown from 'react-markdown';
 
 // Threshold for considering a message "long"
@@ -9,16 +9,18 @@ interface MessageProps {
   message: MessageType;
   globalFoldState?: 'all-folded' | 'all-unfolded' | null;
   participants?: Participants;
+  isHighlighted?: boolean;
 }
 
 function getMessageLength(message: MessageType): number {
   return message.content.reduce((sum, block) => sum + block.content.length, 0);
 }
 
-export default function Message({ message, globalFoldState, participants }: MessageProps) {
+export default function Message({ message, globalFoldState, participants, isHighlighted }: MessageProps) {
   const isLong = getMessageLength(message) > LONG_MESSAGE_THRESHOLD;
   const [isCollapsed, setIsCollapsed] = useState(isLong);
   const isUser = message.role === 'user';
+  const messageRef = useRef<HTMLDivElement>(null);
 
   // Use participant names if available, otherwise fall back to defaults
   const displayName = isUser
@@ -35,13 +37,30 @@ export default function Message({ message, globalFoldState, participants }: Mess
     }
   }, [globalFoldState, isLong]);
 
+  // Scroll into view and unfold when highlighted
+  useEffect(() => {
+    if (isHighlighted && messageRef.current) {
+      // Unfold if collapsed
+      if (isCollapsed) {
+        setIsCollapsed(false);
+      }
+      // Scroll into view with some offset
+      setTimeout(() => {
+        messageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+    }
+  }, [isHighlighted]);
+
   // Generate preview text for collapsed state
   const previewText = message.content[0]?.content.substring(0, 150).replace(/\n/g, ' ') || '';
 
   return (
     <div
+      ref={messageRef}
       id={`msg-${message.index}`}
-      className={`group ${isUser ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-white dark:bg-gray-800'} rounded-lg p-4 shadow-sm`}
+      className={`group ${isUser ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-white dark:bg-gray-800'} rounded-lg p-4 shadow-sm transition-all duration-500 ${
+        isHighlighted ? 'ring-2 ring-yellow-400 ring-offset-2 dark:ring-offset-gray-900 bg-yellow-50 dark:bg-yellow-900/30' : ''
+      }`}
     >
       <div className="flex items-start gap-3">
         <div

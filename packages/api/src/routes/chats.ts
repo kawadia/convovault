@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { ImportChatRequestSchema } from '@convovault/shared';
+import { ImportChatRequestSchema, ChatTranscript } from '@convovault/shared';
 import { z } from 'zod';
 import type { Env } from '../index';
 import { adminAuth } from '../middleware/auth';
@@ -9,6 +9,60 @@ export const chatsRoutes = new Hono<{ Bindings: Env }>();
 
 // List of supported parsers
 const parsers = [claudeWebParser];
+
+/**
+ * Index all messages from a chat into the FTS table
+ */
+async function indexChatMessages(db: D1Database, transcript: ChatTranscript): Promise<void> {
+  for (const message of transcript.messages) {
+    // Combine all content blocks into one text
+    const textContent = message.content
+      .map(block => block.content)
+      .join('\n');
+
+    if (!textContent.trim()) continue;
+
+    // Insert into FTS and metadata tables
+    // First insert metadata to get the rowid
+    const metaResult = await db.prepare(
+      'INSERT INTO messages_fts_meta (chat_id, message_index, role) VALUES (?, ?, ?)'
+    )
+      .bind(transcript.id, message.index, message.role)
+      .run();
+
+    const rowid = metaResult.meta.last_row_id;
+
+    // Then insert into FTS with the same rowid
+    await db.prepare(
+      'INSERT INTO messages_fts (rowid, content) VALUES (?, ?)'
+    )
+      .bind(rowid, textContent)
+      .run();
+  }
+}
+
+/**
+ * Remove all FTS entries for a chat
+ */
+async function removeChatFromFTS(db: D1Database, chatId: string): Promise<void> {
+  // Get all rowids for this chat
+  const rows = await db.prepare(
+    'SELECT rowid FROM messages_fts_meta WHERE chat_id = ?'
+  )
+    .bind(chatId)
+    .all();
+
+  // Delete from FTS and metadata
+  for (const row of rows.results || []) {
+    await db.prepare('DELETE FROM messages_fts WHERE rowid = ?')
+      .bind(row.rowid)
+      .run();
+  }
+
+  await db.prepare('DELETE FROM messages_fts_meta WHERE chat_id = ?')
+    .bind(chatId)
+    .run();
+}
 
 /**
  * Fetch rendered HTML using Cloudflare Browser Rendering REST API
@@ -150,6 +204,9 @@ chatsRoutes.post('/chats/import', adminAuth, async (c) => {
         JSON.stringify(transcript)
       )
       .run();
+
+    // Index messages for full-text search
+    await indexChatMessages(c.env.DB, transcript);
   } catch (error) {
     console.error('Failed to store chat:', error);
     // Still return the parsed transcript even if storage fails
@@ -240,6 +297,9 @@ chatsRoutes.delete('/chats/:id', adminAuth, async (c) => {
     // Delete from chats table
     await c.env.DB.prepare('DELETE FROM chats WHERE id = ?').bind(id).run();
 
+    // Delete from FTS
+    await removeChatFromFTS(c.env.DB, id);
+
     // Also delete related user data
     await c.env.DB.prepare('DELETE FROM user_chats WHERE chat_id = ?')
       .bind(id)
@@ -255,6 +315,52 @@ chatsRoutes.delete('/chats/:id', adminAuth, async (c) => {
   }
 
   return c.json({ deleted: true });
+});
+
+/**
+ * GET /search
+ * Search messages across all chats using full-text search
+ */
+chatsRoutes.get('/search', async (c) => {
+  const query = c.req.query('q');
+
+  if (!query || query.trim().length < 2) {
+    return c.json({ results: [] });
+  }
+
+  try {
+    // Search using FTS5 MATCH with snippet extraction
+    // The snippet function extracts text around matching terms
+    const results = await c.env.DB.prepare(`
+      SELECT
+        m.chat_id,
+        m.message_index,
+        m.role,
+        snippet(messages_fts, 0, '**', '**', '...', 32) as snippet,
+        c.title as chat_title
+      FROM messages_fts
+      JOIN messages_fts_meta m ON messages_fts.rowid = m.rowid
+      JOIN chats c ON m.chat_id = c.id
+      WHERE messages_fts MATCH ?
+      ORDER BY rank
+      LIMIT 50
+    `)
+      .bind(query)
+      .all();
+
+    const searchResults = (results.results || []).map((row) => ({
+      chatId: row.chat_id,
+      chatTitle: row.chat_title,
+      messageIndex: row.message_index,
+      role: row.role,
+      snippet: row.snippet,
+    }));
+
+    return c.json({ results: searchResults });
+  } catch (error) {
+    console.error('Search error:', error);
+    return c.json({ results: [], error: 'Search failed' });
+  }
 });
 
 /**

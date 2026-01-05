@@ -1,10 +1,29 @@
-import { useParams, Link } from 'react-router';
+import { useParams, Link, useLocation } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 import { api } from '../api/client';
 import ChatViewer from '../components/chat/ChatViewer';
 
 export default function Chat() {
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
+  const [highlightedMessageIndex, setHighlightedMessageIndex] = useState<number | null>(null);
+
+  // Extract message index from hash (e.g., #msg-5 -> 5)
+  useEffect(() => {
+    const hash = location.hash;
+    if (hash && hash.startsWith('#msg-')) {
+      const msgIndex = parseInt(hash.replace('#msg-', ''), 10);
+      if (!isNaN(msgIndex)) {
+        setHighlightedMessageIndex(msgIndex);
+        // Clear highlight after 3 seconds
+        const timer = setTimeout(() => {
+          setHighlightedMessageIndex(null);
+        }, 3000);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [location.hash]);
 
   const { data: chat, isLoading, error } = useQuery({
     queryKey: ['chat', id],
@@ -63,7 +82,11 @@ export default function Chat() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-8">
-        <ChatViewer messages={chat.messages} participants={chat.participants} />
+        <ChatViewer
+          messages={chat.messages}
+          participants={chat.participants}
+          highlightedMessageIndex={highlightedMessageIndex}
+        />
       </main>
     </div>
   );
