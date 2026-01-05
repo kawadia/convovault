@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { setAdminKey, isAdmin, api } from '../../api/client';
 
@@ -16,6 +16,39 @@ interface ImportItem {
   messageCount?: number;
   chatId?: string;
   error?: string;
+}
+
+// Animated progress bar that simulates realistic import stages
+function ImportProgressBar() {
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    // Simulate realistic progress stages:
+    // 0-15%: Quick start (initiating request)
+    // 15-60%: Slow (browser rendering - takes most time)
+    // 60-85%: Medium (parsing HTML)
+    // 85-95%: Slow down near end (saving to DB)
+    const interval = setInterval(() => {
+      setProgress(prev => {
+        if (prev < 15) return prev + 3; // Fast initial
+        if (prev < 60) return prev + 0.8; // Slow during rendering
+        if (prev < 85) return prev + 1.5; // Medium during parsing
+        if (prev < 95) return prev + 0.3; // Very slow near end
+        return prev; // Stay at 95 until complete
+      });
+    }, 200);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="mt-2 w-full bg-bg-tertiary rounded-full h-1.5 overflow-hidden">
+      <div
+        className="bg-accent h-1.5 rounded-full transition-all duration-200 ease-out"
+        style={{ width: `${Math.min(progress, 95)}%` }}
+      />
+    </div>
+  );
 }
 
 export default function ImportModal({ onClose }: ImportModalProps) {
@@ -324,11 +357,7 @@ export default function ImportModal({ onClose }: ImportModalProps) {
                         </div>
 
                         {/* Progress bar for importing state */}
-                        {item.status === 'importing' && (
-                          <div className="mt-2 w-full bg-bg-tertiary rounded-full h-1.5 overflow-hidden">
-                            <div className="bg-accent h-1.5 rounded-full animate-pulse" style={{ width: '60%' }}></div>
-                          </div>
-                        )}
+                        {item.status === 'importing' && <ImportProgressBar />}
 
                         {item.status === 'success' && (
                           <div className="text-text-secondary">
