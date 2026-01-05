@@ -136,10 +136,10 @@ describe('chatsRoutes', () => {
     });
 
     it('uses browser rendering when no HTML is provided', async () => {
-      // Mock Browser Rendering API response
+      // Mock Browser Rendering API response (returns JSON with HTML in result field)
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        text: () => Promise.resolve(mockChatHtml),
+        json: () => Promise.resolve({ success: true, result: mockChatHtml }),
       });
 
       const res = await app.request('/api/v1/chats/import', {
