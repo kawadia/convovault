@@ -299,4 +299,154 @@ describe('claudeWebParser', () => {
       ).not.toThrow();
     });
   });
+
+  describe('HTML structure preservation', () => {
+    // Helper to create HTML with specific content in assistant message
+    const createHtmlWithContent = (content: string) => {
+      return `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <title>Test | Claude</title>
+        </head>
+        <body>
+          <div data-test-render-count="2">
+            <div class="group">
+              <div class="group relative pb-3" data-is-streaming="false">
+                <div class="grid-cols-1 grid gap-2.5">
+                  ${content}
+                </div>
+              </div>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+    };
+
+    it('converts unordered lists to markdown format', () => {
+      const html = createHtmlWithContent(`
+        <p>Here are some items:</p>
+        <ul>
+          <li>First item</li>
+          <li>Second item</li>
+          <li>Third item</li>
+        </ul>
+      `);
+      const result = claudeWebParser.parse(html, 'https://claude.ai/share/abc123');
+
+      const content = result.messages[0]?.content[0]?.content || '';
+      expect(content).toContain('- First item');
+      expect(content).toContain('- Second item');
+      expect(content).toContain('- Third item');
+    });
+
+    it('converts ordered lists to markdown format', () => {
+      const html = createHtmlWithContent(`
+        <p>Steps to follow:</p>
+        <ol>
+          <li>Do this first</li>
+          <li>Then this</li>
+          <li>Finally this</li>
+        </ol>
+      `);
+      const result = claudeWebParser.parse(html, 'https://claude.ai/share/abc123');
+
+      const content = result.messages[0]?.content[0]?.content || '';
+      expect(content).toContain('1. Do this first');
+      expect(content).toContain('2. Then this');
+      expect(content).toContain('3. Finally this');
+    });
+
+    it('preserves paragraph breaks', () => {
+      const html = createHtmlWithContent(`
+        <p>First paragraph with some text.</p>
+        <p>Second paragraph with more text.</p>
+      `);
+      const result = claudeWebParser.parse(html, 'https://claude.ai/share/abc123');
+
+      const content = result.messages[0]?.content[0]?.content || '';
+      // Should have line breaks between paragraphs
+      expect(content).toMatch(/First paragraph.*\n+.*Second paragraph/s);
+    });
+
+    it('converts headers to markdown format', () => {
+      const html = createHtmlWithContent(`
+        <h1>Main Title</h1>
+        <p>Some content</p>
+        <h2>Subtitle</h2>
+        <p>More content</p>
+      `);
+      const result = claudeWebParser.parse(html, 'https://claude.ai/share/abc123');
+
+      const content = result.messages[0]?.content[0]?.content || '';
+      expect(content).toContain('# Main Title');
+      expect(content).toContain('## Subtitle');
+    });
+
+    it('converts bold text to markdown format', () => {
+      const html = createHtmlWithContent(`
+        <p>This has <strong>bold text</strong> in it.</p>
+        <p>Also <b>this is bold</b> too.</p>
+      `);
+      const result = claudeWebParser.parse(html, 'https://claude.ai/share/abc123');
+
+      const content = result.messages[0]?.content[0]?.content || '';
+      expect(content).toContain('**bold text**');
+      expect(content).toContain('**this is bold**');
+    });
+
+    it('converts italic text to markdown format', () => {
+      const html = createHtmlWithContent(`
+        <p>This has <em>emphasized text</em> in it.</p>
+        <p>Also <i>italic text</i> too.</p>
+      `);
+      const result = claudeWebParser.parse(html, 'https://claude.ai/share/abc123');
+
+      const content = result.messages[0]?.content[0]?.content || '';
+      expect(content).toContain('*emphasized text*');
+      expect(content).toContain('*italic text*');
+    });
+
+    it('converts inline code to markdown format', () => {
+      const html = createHtmlWithContent(`
+        <p>Use the <code>console.log()</code> function to debug.</p>
+      `);
+      const result = claudeWebParser.parse(html, 'https://claude.ai/share/abc123');
+
+      const content = result.messages[0]?.content[0]?.content || '';
+      expect(content).toContain('`console.log()`');
+    });
+
+    it('converts links to markdown format', () => {
+      const html = createHtmlWithContent(`
+        <p>Check out <a href="https://example.com">this link</a> for more info.</p>
+      `);
+      const result = claudeWebParser.parse(html, 'https://claude.ai/share/abc123');
+
+      const content = result.messages[0]?.content[0]?.content || '';
+      expect(content).toContain('[this link](https://example.com)');
+    });
+
+    it('converts blockquotes to markdown format', () => {
+      const html = createHtmlWithContent(`
+        <blockquote>This is a quoted text from somewhere.</blockquote>
+      `);
+      const result = claudeWebParser.parse(html, 'https://claude.ai/share/abc123');
+
+      const content = result.messages[0]?.content[0]?.content || '';
+      expect(content).toContain('> ');
+    });
+
+    it('preserves line breaks from br tags', () => {
+      const html = createHtmlWithContent(`
+        <p>Line one<br/>Line two<br/>Line three</p>
+      `);
+      const result = claudeWebParser.parse(html, 'https://claude.ai/share/abc123');
+
+      const content = result.messages[0]?.content[0]?.content || '';
+      const lines = content.split('\n').filter((l: string) => l.trim());
+      expect(lines.length).toBeGreaterThanOrEqual(3);
+    });
+  });
 });
