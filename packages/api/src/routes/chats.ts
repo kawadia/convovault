@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { ImportChatRequestSchema } from '@convovault/shared';
+import { z } from 'zod';
 import type { Env } from '../index';
 import { adminAuth } from '../middleware/auth';
 import { claudeWebParser } from '../parsers/claude-web';
@@ -9,14 +10,23 @@ export const chatsRoutes = new Hono<{ Bindings: Env }>();
 // List of supported parsers
 const parsers = [claudeWebParser];
 
+// Extended schema for import with optional HTML content
+const ImportWithHtmlSchema = z.object({
+  url: z.string().url(),
+  html: z.string().optional(), // Pre-rendered HTML from browser
+});
+
 /**
  * POST /chats/import
  * Import a chat from a URL (admin only)
+ *
+ * If `html` is provided in the body, it will be used directly.
+ * Otherwise, the URL will be fetched (note: RSC pages may not parse correctly).
  */
 chatsRoutes.post('/chats/import', adminAuth, async (c) => {
   // Parse and validate request body
   const body = await c.req.json();
-  const parseResult = ImportChatRequestSchema.safeParse(body);
+  const parseResult = ImportWithHtmlSchema.safeParse(body);
 
   if (!parseResult.success) {
     return c.json(
@@ -25,7 +35,7 @@ chatsRoutes.post('/chats/import', adminAuth, async (c) => {
     );
   }
 
-  const { url } = parseResult.data;
+  const { url, html: providedHtml } = parseResult.data;
 
   // Find a parser that can handle this URL
   const parser = parsers.find((p) => p.canParse(url));
@@ -54,29 +64,36 @@ chatsRoutes.post('/chats/import', adminAuth, async (c) => {
     // Table might not exist yet, continue with import
   }
 
-  // Fetch the URL
+  // Use provided HTML or fetch from URL
   let html: string;
-  try {
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'ConvoVault/1.0',
-        Accept: 'text/html',
-      },
-    });
 
-    if (!response.ok) {
+  if (providedHtml) {
+    // Use pre-rendered HTML from browser
+    html = providedHtml;
+  } else {
+    // Try fetching the URL (may not work for RSC pages)
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'ConvoVault/1.0',
+          Accept: 'text/html',
+        },
+      });
+
+      if (!response.ok) {
+        return c.json(
+          { error: `Failed to fetch URL: ${response.status}` },
+          500
+        );
+      }
+
+      html = await response.text();
+    } catch (error) {
       return c.json(
-        { error: `Failed to fetch URL: ${response.status}` },
+        { error: `Failed to fetch URL: ${error instanceof Error ? error.message : 'Unknown error'}` },
         500
       );
     }
-
-    html = await response.text();
-  } catch (error) {
-    return c.json(
-      { error: `Failed to fetch URL: ${error instanceof Error ? error.message : 'Unknown error'}` },
-      500
-    );
   }
 
   // Parse the HTML

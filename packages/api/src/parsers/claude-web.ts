@@ -80,11 +80,29 @@ function extractTitle(html: string): string {
 
 /**
  * Extract messages from HTML
+ *
+ * Supports two extraction strategies:
+ * 1. Server-rendered HTML with data-test-render-count attribute
+ * 2. Client-rendered HTML with font-user-message and data-is-streaming
  */
 function extractMessages(html: string): Message[] {
+  // Try strategy 1: data-test-render-count (test fixtures, some server renders)
+  let messages = extractMessagesWithRenderCount(html);
+
+  // If no messages found, try strategy 2: class-based extraction
+  if (messages.length === 0) {
+    messages = extractMessagesWithClasses(html);
+  }
+
+  return messages;
+}
+
+/**
+ * Strategy 1: Extract using data-test-render-count attribute
+ */
+function extractMessagesWithRenderCount(html: string): Message[] {
   const messages: Message[] = [];
 
-  // Find all message blocks with data-test-render-count="2"
   const blockRegex =
     /<div\s+data-test-render-count="2"[^>]*>([\s\S]*?)(?=<div\s+data-test-render-count="2"|<\/body>|$)/gi;
 
@@ -95,17 +113,12 @@ function extractMessages(html: string): Message[] {
     const blockContent = match[1];
     if (!blockContent) continue;
 
-    // Determine role based on presence of font-user-message class
     const isUser = blockContent.includes('font-user-message');
     const role: 'user' | 'assistant' = isUser ? 'user' : 'assistant';
-
-    // Extract text content
     const textContent = extractTextContent(blockContent);
 
-    // Skip empty blocks
     if (!textContent.trim()) continue;
 
-    // Extract code blocks
     const contentBlocks = extractContentBlocks(blockContent, textContent);
 
     messages.push({
@@ -117,6 +130,60 @@ function extractMessages(html: string): Message[] {
 
     index++;
   }
+
+  return messages;
+}
+
+/**
+ * Strategy 2: Extract using class names (for client-rendered HTML)
+ * - User messages: elements with font-user-message class
+ * - Assistant messages: elements with data-is-streaming attribute
+ */
+function extractMessagesWithClasses(html: string): Message[] {
+  const messages: Message[] = [];
+
+  // Find user messages (font-user-message class)
+  const userMsgRegex = /<div[^>]*class="[^"]*font-user-message[^"]*"[^>]*>([\s\S]*?)<\/div>/gi;
+  const userMessages: Array<{ content: string; position: number }> = [];
+
+  let match;
+  while ((match = userMsgRegex.exec(html)) !== null) {
+    const content = extractTextContent(match[1] || '');
+    if (content.trim()) {
+      userMessages.push({ content, position: match.index });
+    }
+  }
+
+  // Find assistant messages (data-is-streaming attribute with group relative pb-3 class)
+  const assistantMsgRegex = /<div[^>]*class="group relative pb-3"[^>]*data-is-streaming[^>]*>([\s\S]*?)(?=<div[^>]*class="group relative pb-3"|<div[^>]*class="[^"]*font-user-message|$)/gi;
+  const assistantMessages: Array<{ content: string; position: number }> = [];
+
+  while ((match = assistantMsgRegex.exec(html)) !== null) {
+    const blockHtml = match[1] || '';
+    const content = extractTextContent(blockHtml);
+    if (content.trim() && content.length > 10) { // Assistant messages should have substantial content
+      assistantMessages.push({
+        content,
+        position: match.index
+      });
+    }
+  }
+
+  // Merge and sort by position
+  const allMessages = [
+    ...userMessages.map(m => ({ ...m, role: 'user' as const })),
+    ...assistantMessages.map(m => ({ ...m, role: 'assistant' as const })),
+  ].sort((a, b) => a.position - b.position);
+
+  // Convert to Message objects
+  allMessages.forEach((msg, index) => {
+    messages.push({
+      id: `msg-${index}`,
+      index,
+      role: msg.role,
+      content: [{ type: 'text', content: msg.content }],
+    });
+  });
 
   return messages;
 }
