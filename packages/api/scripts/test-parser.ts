@@ -23,7 +23,12 @@ devVars.split('\n').forEach(line => {
 
 const CF_ACCOUNT_ID = env.CF_ACCOUNT_ID;
 const CF_API_TOKEN = env.CF_API_TOKEN;
-const TEST_URL = 'https://claude.ai/share/ec0a6320-d9ab-4598-b2be-ac5d9d2c24d1';
+// Test URLs - can override with command line arg
+const TEST_URLS = [
+  'https://claude.ai/share/c0d98864-5724-49a0-8df9-10e74bd3b415',
+  'https://claude.ai/share/271f5aec-5ba4-4385-9ac6-cceaaa45b9f7',
+];
+const TEST_URL = process.argv[2] || TEST_URLS[0];
 
 async function main() {
   console.log('Fetching page via Browser Rendering API...\n');
