@@ -7,6 +7,9 @@ export interface Env {
   DB: D1Database;
   ADMIN_API_KEY: string;
   ENVIRONMENT: string;
+  // Cloudflare Browser Rendering API credentials
+  CF_ACCOUNT_ID: string;
+  CF_API_TOKEN: string;
 }
 
 // Create Hono app with typed environment

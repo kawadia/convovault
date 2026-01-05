@@ -7,6 +7,11 @@ compatibility_flags = ["nodejs_compat"]
 # Non-secret environment variables
 ENVIRONMENT = "development"
 
+# Required secrets (set via `wrangler secret put <NAME>`):
+# - ADMIN_API_KEY: API key for admin operations (import/delete chats)
+# - CF_ACCOUNT_ID: Cloudflare account ID for Browser Rendering API
+# - CF_API_TOKEN: Cloudflare API token with Browser Rendering permissions
+
 # D1 Database binding
 [[d1_databases]]
 binding = "DB"

@@ -10,6 +10,40 @@ export const chatsRoutes = new Hono<{ Bindings: Env }>();
 // List of supported parsers
 const parsers = [claudeWebParser];
 
+/**
+ * Fetch rendered HTML using Cloudflare Browser Rendering REST API
+ * This bypasses Cloudflare's bot protection and waits for React to hydrate
+ */
+async function fetchRenderedHtml(url: string, env: Env): Promise<string> {
+  const response = await fetch(
+    `https://api.cloudflare.com/client/v4/accounts/${env.CF_ACCOUNT_ID}/browser-rendering/content`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${env.CF_API_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        url,
+        // Wait for the page to be fully loaded and idle
+        gotoOptions: { waitUntil: 'networkidle0' },
+        // Wait for Claude's message container to appear (indicates React hydration complete)
+        waitForSelector: {
+          selector: '[data-is-streaming]',
+          options: { timeout: 15000 },
+        },
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`Browser rendering failed: ${response.status} - ${errorBody}`);
+  }
+
+  return response.text();
+}
+
 // Extended schema for import with optional HTML content
 const ImportWithHtmlSchema = z.object({
   url: z.string().url(),
@@ -64,33 +98,25 @@ chatsRoutes.post('/chats/import', adminAuth, async (c) => {
     // Table might not exist yet, continue with import
   }
 
-  // Use provided HTML or fetch from URL
+  // Use provided HTML or fetch using browser rendering
   let html: string;
 
   if (providedHtml) {
-    // Use pre-rendered HTML from browser
+    // Use pre-rendered HTML from browser (file upload flow)
     html = providedHtml;
   } else {
-    // Try fetching the URL (may not work for RSC pages)
+    // Use Cloudflare Browser Rendering to fetch the page
+    // This bypasses Cloudflare's bot protection and waits for React hydration
     try {
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': 'ConvoVault/1.0',
-          Accept: 'text/html',
-        },
-      });
-
-      if (!response.ok) {
-        return c.json(
-          { error: `Failed to fetch URL: ${response.status}` },
-          500
-        );
-      }
-
-      html = await response.text();
+      html = await fetchRenderedHtml(url, c.env);
     } catch (error) {
+      console.error('Browser rendering error:', error);
       return c.json(
-        { error: `Failed to fetch URL: ${error instanceof Error ? error.message : 'Unknown error'}` },
+        {
+          error: 'Failed to fetch page',
+          details: error instanceof Error ? error.message : 'Unknown error',
+          hint: 'Ensure CF_ACCOUNT_ID and CF_API_TOKEN are configured correctly'
+        },
         500
       );
     }

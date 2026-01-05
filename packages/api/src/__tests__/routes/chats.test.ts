@@ -51,6 +51,8 @@ const createMockEnv = () => ({
   ADMIN_API_KEY: 'test-admin-key',
   DB: createMockDb() as unknown as D1Database,
   ENVIRONMENT: 'test',
+  CF_ACCOUNT_ID: 'test-account-id',
+  CF_API_TOKEN: 'test-api-token',
 });
 
 // Sample HTML for mock responses
@@ -133,7 +135,8 @@ describe('chatsRoutes', () => {
       expect(json.error).toContain('Unsupported');
     });
 
-    it('successfully imports a valid claude.ai share URL', async () => {
+    it('uses browser rendering when no HTML is provided', async () => {
+      // Mock Browser Rendering API response
       mockFetch.mockResolvedValueOnce({
         ok: true,
         text: () => Promise.resolve(mockChatHtml),
@@ -153,6 +156,40 @@ describe('chatsRoutes', () => {
       expect(json).toHaveProperty('id');
       expect(json).toHaveProperty('title', 'Test Chat');
       expect(json).toHaveProperty('source', 'claude-web');
+
+      // Verify browser rendering API was called
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://api.cloudflare.com/client/v4/accounts/test-account-id/browser-rendering/content',
+        expect.objectContaining({
+          method: 'POST',
+          headers: expect.objectContaining({
+            'Authorization': 'Bearer test-api-token',
+          }),
+        })
+      );
+    });
+
+    it('uses provided HTML when available (skips browser rendering)', async () => {
+      const res = await app.request('/api/v1/chats/import', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Key': 'test-admin-key',
+        },
+        body: JSON.stringify({
+          url: 'https://claude.ai/share/abc123',
+          html: mockChatHtml,
+        }),
+      }, mockEnv);
+
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json).toHaveProperty('id');
+      expect(json).toHaveProperty('title', 'Test Chat');
+      expect(json).toHaveProperty('source', 'claude-web');
+
+      // Verify browser rendering API was NOT called
+      expect(mockFetch).not.toHaveBeenCalled();
     });
 
     it('returns cached chat if already imported', async () => {
