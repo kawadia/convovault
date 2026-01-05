@@ -1,43 +1,65 @@
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router';
-import { api, setAdminKey, isAdmin } from '../../api/client';
+import { setAdminKey, isAdmin } from '../../api/client';
 
 interface ImportModalProps {
   onClose: () => void;
 }
 
+// API URL for the bookmarklet
+const API_URL = import.meta.env.VITE_API_URL || 'https://convovault-api.kawadia.workers.dev/api/v1';
+const APP_URL = typeof window !== 'undefined' ? window.location.origin : 'https://convovault.pages.dev';
+
+// Generate bookmarklet code
+function getBookmarkletCode(adminKey: string): string {
+  const code = `
+(function() {
+  if (!location.href.includes('claude.ai/share/')) {
+    alert('Please use this bookmarklet on a claude.ai/share page');
+    return;
+  }
+  var html = document.documentElement.outerHTML;
+  var url = location.href;
+  fetch('${API_URL}/chats/import', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Admin-Key': '${adminKey}'
+    },
+    body: JSON.stringify({ url: url, html: html })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.error) {
+      alert('Import failed: ' + data.error);
+    } else {
+      alert('Imported: ' + data.title + ' (' + data.messageCount + ' messages)');
+      window.open('${APP_URL}/chat/' + data.id, '_blank');
+    }
+  })
+  .catch(function(e) { alert('Import failed: ' + e.message); });
+})();
+`.replace(/\s+/g, ' ').trim();
+  return `javascript:${encodeURIComponent(code)}`;
+}
+
 export default function ImportModal({ onClose }: ImportModalProps) {
-  const [url, setUrl] = useState('');
   const [adminKey, setAdminKeyInput] = useState('');
   const [showAdminKey] = useState(!isAdmin());
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  const [showBookmarklet, setShowBookmarklet] = useState(false);
 
-  const importMutation = useMutation({
-    mutationFn: async (chatUrl: string) => {
-      if (adminKey) {
-        setAdminKey(adminKey);
-      }
-      return api.importChat(chatUrl);
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['chats'] });
-      navigate(`/chat/${data.id}`);
-      onClose();
-    },
-  });
+  // Get stored admin key or use input
+  const effectiveAdminKey = adminKey || localStorage.getItem('convovault-admin-key') || '';
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (url.trim()) {
-      importMutation.mutate(url.trim());
+  const handleSaveKey = () => {
+    if (adminKey) {
+      setAdminKey(adminKey);
+      setShowBookmarklet(true);
     }
   };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full mx-4 p-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
             Import Chat
@@ -52,8 +74,9 @@ export default function ImportModal({ onClose }: ImportModalProps) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {showAdminKey && (
+        <div className="space-y-4">
+          {/* Admin Key Section */}
+          {showAdminKey && !showBookmarklet && (
             <div>
               <label htmlFor="adminKey" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Admin Key
@@ -66,30 +89,51 @@ export default function ImportModal({ onClose }: ImportModalProps) {
                 placeholder="Enter admin key..."
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               />
+              <button
+                onClick={handleSaveKey}
+                disabled={!adminKey}
+                className="mt-2 w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+              >
+                Continue
+              </button>
             </div>
           )}
 
-          <div>
-            <label htmlFor="url" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Chat URL
-            </label>
-            <input
-              type="url"
-              id="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://claude.ai/share/..."
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              required
-            />
-            <p className="mt-1 text-sm text-gray-500">
-              Paste a claude.ai share link
-            </p>
-          </div>
+          {/* Bookmarklet Instructions */}
+          {(showBookmarklet || isAdmin()) && (
+            <div className="space-y-4">
+              <div className="p-4 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg">
+                <h3 className="font-medium text-indigo-900 dark:text-indigo-200 mb-2">
+                  How to Import
+                </h3>
+                <ol className="text-sm text-indigo-800 dark:text-indigo-300 space-y-2 list-decimal list-inside">
+                  <li>Drag this button to your bookmarks bar:</li>
+                </ol>
 
-          {importMutation.error && (
-            <div className="p-3 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg text-sm">
-              {importMutation.error.message}
+                <div className="mt-3 flex justify-center">
+                  <a
+                    href={getBookmarkletCode(effectiveAdminKey)}
+                    onClick={(e) => e.preventDefault()}
+                    draggable="true"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium cursor-move hover:bg-indigo-700"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Import to ConvoVault
+                  </a>
+                </div>
+
+                <ol start={2} className="text-sm text-indigo-800 dark:text-indigo-300 space-y-2 list-decimal list-inside mt-3">
+                  <li>Open a <code className="bg-indigo-100 dark:bg-indigo-800 px-1 rounded">claude.ai/share/...</code> page</li>
+                  <li>Click the bookmarklet</li>
+                  <li>The chat will be imported automatically!</li>
+                </ol>
+              </div>
+
+              <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                The bookmarklet captures the page content and sends it to ConvoVault.
+              </p>
             </div>
           )}
 
@@ -99,17 +143,10 @@ export default function ImportModal({ onClose }: ImportModalProps) {
               onClick={onClose}
               className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
             >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={importMutation.isPending}
-              className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
-            >
-              {importMutation.isPending ? 'Importing...' : 'Import'}
+              Close
             </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );
