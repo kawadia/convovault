@@ -1,5 +1,6 @@
 import type { Message as MessageType, ContentBlock } from '@convovault/shared';
 import { useState } from 'react';
+import Markdown from 'react-markdown';
 
 interface MessageProps {
   message: MessageType;
@@ -69,10 +70,68 @@ function ContentBlockRenderer({ block }: { block: ContentBlock }) {
     );
   }
 
-  // Default: text
+  // Default: text - render as markdown
   return (
-    <div className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-      {block.content}
+    <div className="text-gray-700 dark:text-gray-300 prose prose-sm dark:prose-invert max-w-none">
+      <Markdown
+        components={{
+          // Style code blocks within markdown
+          pre: ({ children }) => (
+            <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm">
+              {children}
+            </pre>
+          ),
+          code: ({ children, className }) => {
+            const isInline = !className;
+            if (isInline) {
+              return (
+                <code className="bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded text-sm">
+                  {children}
+                </code>
+              );
+            }
+            return <code>{children}</code>;
+          },
+          // Style lists
+          ul: ({ children }) => (
+            <ul className="list-disc list-inside space-y-1 my-2">{children}</ul>
+          ),
+          ol: ({ children }) => (
+            <ol className="list-decimal list-inside space-y-1 my-2">{children}</ol>
+          ),
+          li: ({ children }) => (
+            <li className="text-gray-700 dark:text-gray-300">{children}</li>
+          ),
+          // Style paragraphs
+          p: ({ children }) => (
+            <p className="my-2">{children}</p>
+          ),
+          // Style headings
+          h1: ({ children }) => (
+            <h1 className="text-xl font-bold mt-4 mb-2">{children}</h1>
+          ),
+          h2: ({ children }) => (
+            <h2 className="text-lg font-bold mt-3 mb-2">{children}</h2>
+          ),
+          h3: ({ children }) => (
+            <h3 className="text-base font-bold mt-3 mb-1">{children}</h3>
+          ),
+          // Style blockquotes
+          blockquote: ({ children }) => (
+            <blockquote className="border-l-4 border-gray-300 dark:border-gray-600 pl-4 my-2 italic">
+              {children}
+            </blockquote>
+          ),
+          // Style links
+          a: ({ href, children }) => (
+            <a href={href} className="text-indigo-600 dark:text-indigo-400 hover:underline" target="_blank" rel="noopener noreferrer">
+              {children}
+            </a>
+          ),
+        }}
+      >
+        {block.content}
+      </Markdown>
     </div>
   );
 }

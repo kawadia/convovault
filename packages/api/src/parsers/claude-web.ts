@@ -189,23 +189,107 @@ function extractMessagesWithClasses(html: string): Message[] {
 }
 
 /**
- * Extract text content from HTML, stripping tags
+ * Extract text content from HTML, converting structure to markdown
  */
 function extractTextContent(html: string): string {
   // Remove script and style tags completely
   let text = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
   text = text.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
 
-  // Remove all HTML tags
-  text = text.replace(/<[^>]+>/g, ' ');
+  // Convert block elements to preserve structure
+
+  // Headers
+  text = text.replace(/<h1[^>]*>([\s\S]*?)<\/h1>/gi, '\n\n# $1\n\n');
+  text = text.replace(/<h2[^>]*>([\s\S]*?)<\/h2>/gi, '\n\n## $1\n\n');
+  text = text.replace(/<h3[^>]*>([\s\S]*?)<\/h3>/gi, '\n\n### $1\n\n');
+  text = text.replace(/<h4[^>]*>([\s\S]*?)<\/h4>/gi, '\n\n#### $1\n\n');
+  text = text.replace(/<h5[^>]*>([\s\S]*?)<\/h5>/gi, '\n\n##### $1\n\n');
+  text = text.replace(/<h6[^>]*>([\s\S]*?)<\/h6>/gi, '\n\n###### $1\n\n');
+
+  // Blockquotes
+  text = text.replace(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi, (_, content) => {
+    const lines = content.split('\n').map((line: string) => `> ${line}`).join('\n');
+    return `\n\n${lines}\n\n`;
+  });
+
+  // Paragraphs and divs - add line breaks
+  text = text.replace(/<\/p>/gi, '\n\n');
+  text = text.replace(/<p[^>]*>/gi, '');
+  text = text.replace(/<br\s*\/?>/gi, '\n');
+
+  // Lists - handle before removing other tags
+  // First, process list items with proper markers
+  text = processLists(text);
+
+  // Inline formatting
+  text = text.replace(/<strong[^>]*>([\s\S]*?)<\/strong>/gi, '**$1**');
+  text = text.replace(/<b[^>]*>([\s\S]*?)<\/b>/gi, '**$1**');
+  text = text.replace(/<em[^>]*>([\s\S]*?)<\/em>/gi, '*$1*');
+  text = text.replace(/<i[^>]*>([\s\S]*?)<\/i>/gi, '*$1*');
+  text = text.replace(/<code[^>]*>([\s\S]*?)<\/code>/gi, '`$1`');
+
+  // Links - extract text and URL
+  text = text.replace(/<a[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi, '[$2]($1)');
+
+  // Remove remaining HTML tags
+  text = text.replace(/<[^>]+>/g, '');
 
   // Decode HTML entities
   text = decodeHtmlEntities(text);
 
-  // Normalize whitespace
-  text = text.replace(/\s+/g, ' ').trim();
+  // Clean up excessive whitespace while preserving intentional line breaks
+  text = text.replace(/[ \t]+/g, ' '); // Collapse horizontal whitespace
+  text = text.replace(/\n[ \t]+/g, '\n'); // Remove leading whitespace on lines
+  text = text.replace(/[ \t]+\n/g, '\n'); // Remove trailing whitespace on lines
+  text = text.replace(/\n{3,}/g, '\n\n'); // Max 2 consecutive newlines
+  text = text.trim();
 
   return text;
+}
+
+/**
+ * Process HTML lists into markdown format
+ */
+function processLists(html: string): string {
+  let text = html;
+
+  // Process unordered lists
+  text = text.replace(/<ul[^>]*>([\s\S]*?)<\/ul>/gi, (_, content) => {
+    const items = extractListItems(content);
+    return '\n\n' + items.map(item => `- ${item}`).join('\n') + '\n\n';
+  });
+
+  // Process ordered lists
+  text = text.replace(/<ol[^>]*>([\s\S]*?)<\/ol>/gi, (_, content) => {
+    const items = extractListItems(content);
+    return '\n\n' + items.map((item, i) => `${i + 1}. ${item}`).join('\n') + '\n\n';
+  });
+
+  return text;
+}
+
+/**
+ * Extract list items from list content
+ */
+function extractListItems(listHtml: string): string[] {
+  const items: string[] = [];
+  const liRegex = /<li[^>]*>([\s\S]*?)<\/li>/gi;
+  let match;
+
+  while ((match = liRegex.exec(listHtml)) !== null) {
+    // Recursively process nested content (but strip inner list tags for now)
+    let content = match[1] || '';
+    // Remove nested ul/ol for now to avoid double processing
+    content = content.replace(/<[uo]l[^>]*>[\s\S]*?<\/[uo]l>/gi, '');
+    // Strip remaining tags
+    content = content.replace(/<[^>]+>/g, '').trim();
+    content = decodeHtmlEntities(content);
+    if (content) {
+      items.push(content);
+    }
+  }
+
+  return items;
 }
 
 /**
