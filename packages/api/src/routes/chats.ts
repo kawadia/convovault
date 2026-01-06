@@ -233,10 +233,18 @@ chatsRoutes.post('/chats/import', requireAuth, async (c) => {
  * List all chats (public)
  */
 chatsRoutes.get('/chats', async (c) => {
+  const user = c.get('user');
   try {
-    const result = await c.env.DB.prepare(
-      'SELECT id, source, source_url, title, created_at, fetched_at, message_count, word_count, content, user_id FROM chats ORDER BY fetched_at DESC'
-    ).all();
+    let sql = `
+      SELECT
+        c.id, c.source, c.source_url, c.title, c.created_at, c.fetched_at,
+        c.message_count, c.word_count, c.content, c.user_id,
+        COALESCE(uc.is_favorite, 0) as is_favorite
+      FROM chats c
+      LEFT JOIN user_chats uc ON c.id = uc.chat_id AND uc.user_id = ?
+      ORDER BY c.fetched_at DESC
+    `;
+    const result = await c.env.DB.prepare(sql).bind(user?.id || 'anonymous').all();
 
     const chats = (result.results || []).map((row) => {
       // Extract participants from content JSON
@@ -261,11 +269,13 @@ chatsRoutes.get('/chats', async (c) => {
         wordCount: row.word_count,
         participants,
         userId: row.user_id, // Include owner ID for permission checks
+        isFavorite: Boolean(row.is_favorite),
       };
     });
 
     return c.json({ chats });
-  } catch {
+  } catch (error) {
+    console.error('Failed to list chats:', error);
     return c.json({ chats: [] });
   }
 });
@@ -276,10 +286,16 @@ chatsRoutes.get('/chats', async (c) => {
  */
 chatsRoutes.get('/chats/:id', async (c) => {
   const { id } = c.req.param();
+  const user = c.get('user');
 
   try {
-    const chat = await c.env.DB.prepare('SELECT * FROM chats WHERE id = ?')
-      .bind(id)
+    const chat = await c.env.DB.prepare(`
+      SELECT c.*, COALESCE(uc.is_favorite, 0) as is_favorite
+      FROM chats c
+      LEFT JOIN user_chats uc ON c.id = uc.chat_id AND uc.user_id = ?
+      WHERE c.id = ?
+    `)
+      .bind(user?.id || 'anonymous', id)
       .first();
 
     if (!chat) {
@@ -289,6 +305,48 @@ chatsRoutes.get('/chats/:id', async (c) => {
     return c.json(formatChatResponse(chat));
   } catch {
     return c.json({ error: 'Chat not found' }, 404);
+  }
+});
+
+/**
+ * POST /chats/:id/favorite
+ * Toggle favorite status
+ */
+chatsRoutes.post('/chats/:id/favorite', requireAuth, async (c) => {
+  const { id } = c.req.param();
+  const user = c.get('user')!;
+  const body = await c.req.json().catch(() => ({}));
+  const isFavorite = body.favorite === true ? 1 : 0;
+
+  try {
+    // Check if user_chat entry exists
+    const existing = await c.env.DB.prepare(
+      'SELECT chat_id FROM user_chats WHERE user_id = ? AND chat_id = ?'
+    )
+      .bind(user.id, id)
+      .first();
+
+    if (existing) {
+      // Update
+      await c.env.DB.prepare(
+        'UPDATE user_chats SET is_favorite = ? WHERE user_id = ? AND chat_id = ?'
+      )
+        .bind(isFavorite, user.id, id)
+        .run();
+    } else {
+      // Insert
+      const now = Math.floor(Date.now() / 1000);
+      await c.env.DB.prepare(
+        'INSERT INTO user_chats (user_id, chat_id, is_favorite, imported_at) VALUES (?, ?, ?, ?)'
+      )
+        .bind(user.id, id, isFavorite, now)
+        .run();
+    }
+
+    return c.json({ favorite: Boolean(isFavorite) });
+  } catch (error) {
+    console.error('Failed to favorite chat:', error);
+    return c.json({ error: 'Failed to update favorite status' }, 500);
   }
 });
 
@@ -482,5 +540,6 @@ function formatChatResponse(row: Record<string, unknown>) {
     wordCount: row.word_count,
     messages,
     participants,
+    isFavorite: Boolean(row.is_favorite),
   };
 }
