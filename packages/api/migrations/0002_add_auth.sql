@@ -27,6 +27,6 @@ CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at);
 
 -- Add owner to chats (nullable for backwards compatibility with existing chats)
-ALTER TABLE chats ADD COLUMN user_id TEXT REFERENCES users(id);
+-- ALTER TABLE chats ADD COLUMN user_id TEXT REFERENCES users(id);
 
 CREATE INDEX IF NOT EXISTS idx_chats_user ON chats(user_id);
