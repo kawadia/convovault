@@ -1,6 +1,8 @@
 import type { Message, Participants } from '@convovault/shared';
 
-const API_BASE = import.meta.env.VITE_API_URL || '/api/v1';
+// Use api.diastack.com in production, allow override via env var for local dev
+const API_BASE = import.meta.env.VITE_API_URL ||
+  (import.meta.env.PROD ? 'https://api.diastack.com/api/v1' : '/api/v1');
 const TOKEN_KEY = 'diastack-session-token';
 
 // Get or create anonymous user ID (for non-logged-in users)

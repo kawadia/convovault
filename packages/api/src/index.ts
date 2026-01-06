@@ -32,6 +32,7 @@ app.use(
         'https://diastack.pages.dev',
         'https://diastack.com',
         'https://www.diastack.com',
+        'https://api.diastack.com',
       ];
       // Also allow any *.diastack.pages.dev preview URLs
       if (origin && (allowedOrigins.includes(origin) || origin.endsWith('.diastack.pages.dev'))) {
