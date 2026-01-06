@@ -72,7 +72,8 @@ authRoutes.get('/auth/callback', async (c) => {
   // Validate state for CSRF protection
   if (!state || state !== storedState) {
     console.error('State mismatch:', { state, storedState });
-    return c.redirect(`${c.env.FRONTEND_URL}?error=invalid_state`);
+    // DEBUG: exposing state values in URL to diagnose
+    return c.redirect(`${c.env.FRONTEND_URL}?error=invalid_state&debug_state=${state}&debug_stored=${storedState}`);
   }
 
   if (!code) {
