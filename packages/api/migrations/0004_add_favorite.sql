@@ -1,0 +1,2 @@
+-- Migration number: 0004 	 2024-01-06T14:34:39.000Z
+ALTER TABLE user_chats ADD COLUMN is_favorite INTEGER NOT NULL DEFAULT 0;
