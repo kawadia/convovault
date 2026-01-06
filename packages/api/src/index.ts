@@ -32,7 +32,6 @@ app.use(
         'https://diastack.pages.dev',
         'https://diastack.com',
         'https://www.diastack.com',
-        'https://api.diastack.com',
       ];
       // Also allow any *.diastack.pages.dev preview URLs
       if (origin && (allowedOrigins.includes(origin) || origin.endsWith('.diastack.pages.dev'))) {
@@ -41,7 +40,7 @@ app.use(
       return allowedOrigins[0]; // Default for non-browser requests
     },
     allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'X-User-ID', 'Authorization'],
+    allowHeaders: ['Content-Type', 'X-User-ID'],
     exposeHeaders: ['X-User-ID'],
     credentials: true, // Allow cookies
   })

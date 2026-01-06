@@ -29,11 +29,10 @@ authRoutes.get('/auth/google', async (c) => {
   const state = crypto.randomUUID();
 
   // Store state in a short-lived cookie for CSRF protection
-  // SameSite=None required for cross-origin OAuth flow
   setCookie(c, 'oauth_state', state, {
     httpOnly: true,
     secure: true,
-    sameSite: 'None',
+    sameSite: 'Lax',
     maxAge: 600, // 10 minutes
     path: '/',
   });
@@ -152,19 +151,18 @@ authRoutes.get('/auth/callback', async (c) => {
       'INSERT INTO sessions (id, user_id, expires_at, created_at) VALUES (?, ?, ?, ?)'
     ).bind(sessionId, finalUserId, expiresAt, now).run();
 
-    // Set session cookie (for same-origin API access)
-    // SameSite=None required for cross-origin requests from frontend
+    // Set session cookie on the root domain for cross-subdomain sharing
     setCookie(c, 'session', sessionId, {
       httpOnly: true,
       secure: true,
-      sameSite: 'None',
+      sameSite: 'Lax',
       maxAge: SESSION_DURATION,
       path: '/',
+      domain: '.diastack.com', // Share cookie across subdomains
     });
 
-    // Redirect to frontend with session token in URL for cross-origin auth
-    // Frontend will store this in localStorage for subsequent API calls
-    return c.redirect(`${c.env.FRONTEND_URL}?token=${sessionId}`);
+    // Redirect to frontend
+    return c.redirect(c.env.FRONTEND_URL);
   } catch (err) {
     console.error('OAuth callback error:', err);
     return c.redirect(`${c.env.FRONTEND_URL}?error=callback_failed`);
@@ -172,17 +170,10 @@ authRoutes.get('/auth/callback', async (c) => {
 });
 
 /**
- * Get current user from session
- * Supports both cookie-based auth and Authorization header (Bearer token)
+ * Get current user from session cookie
  */
 authRoutes.get('/auth/me', async (c) => {
-  // Try Authorization header first, then fall back to cookie
-  const authHeader = c.req.header('Authorization');
-  let sessionId = getCookie(c, 'session');
-
-  if (authHeader?.startsWith('Bearer ')) {
-    sessionId = authHeader.slice(7);
-  }
+  const sessionId = getCookie(c, 'session');
 
   if (!sessionId) {
     return c.json({ user: null });

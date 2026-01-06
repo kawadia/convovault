@@ -57,7 +57,7 @@ describe('Auth Routes', () => {
       expect(setCookie).toContain('oauth_state=');
       expect(setCookie).toContain('HttpOnly');
       expect(setCookie).toContain('Secure');
-      expect(setCookie).toContain('SameSite=None');
+      expect(setCookie).toContain('SameSite=Lax');
     });
   });
 

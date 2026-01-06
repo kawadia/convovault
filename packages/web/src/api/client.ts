@@ -3,7 +3,6 @@ import type { Message, Participants } from '@convovault/shared';
 // Use api.diastack.com in production, allow override via env var for local dev
 const API_BASE = import.meta.env.VITE_API_URL ||
   (import.meta.env.PROD ? 'https://api.diastack.com/api/v1' : '/api/v1');
-const TOKEN_KEY = 'diastack-session-token';
 
 // Get or create anonymous user ID (for non-logged-in users)
 function getUserId(): string {
@@ -16,30 +15,18 @@ function getUserId(): string {
   return userId;
 }
 
-// Get stored auth token
-function getAuthToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY);
-}
-
 async function fetchApi<T>(
   endpoint: string,
-  options: RequestInit = {},
-  requiresAuth = false
+  options: RequestInit = {}
 ): Promise<T> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     'X-User-ID': getUserId(),
   };
 
-  // Add auth token if available (for authenticated requests)
-  const token = getAuthToken();
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
   const response = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
-    credentials: 'include', // Include cookies as fallback
+    credentials: 'include', // Include cookies for session auth
     headers: {
       ...headers,
       ...options.headers,
@@ -90,7 +77,7 @@ export const api = {
     return fetchApi<ChatSummary>('/chats/import', {
       method: 'POST',
       body: JSON.stringify({ url, html }),
-    }, true);
+    });
   },
 
   // Get a chat by ID
@@ -102,7 +89,7 @@ export const api = {
   async deleteChat(id: string): Promise<{ deleted: boolean }> {
     return fetchApi<{ deleted: boolean }>(`/chats/${id}`, {
       method: 'DELETE',
-    }, true);
+    });
   },
 
   // Search messages across all chats or within a specific chat

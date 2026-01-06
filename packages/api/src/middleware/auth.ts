@@ -100,20 +100,12 @@ function generateUserId(): string {
 /**
  * Session authentication middleware
  *
- * Reads the session from Authorization header (Bearer token) or cookie
- * and attaches the user to the context if valid.
+ * Reads the session cookie and attaches the user to the context if valid.
  * Does NOT require authentication - use requireAuth for that.
  */
 export const sessionAuth = createMiddleware<{ Bindings: Env }>(
   async (c, next) => {
-    // Try Authorization header first, then fall back to cookie
-    const authHeader = c.req.header('Authorization');
-    let sessionId = getCookie(c, 'session');
-
-    if (authHeader?.startsWith('Bearer ')) {
-      sessionId = authHeader.slice(7);
-    }
-
+    const sessionId = getCookie(c, 'session');
     c.set('user', null);
 
     if (sessionId) {
