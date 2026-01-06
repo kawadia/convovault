@@ -55,10 +55,10 @@ jobs:
       - name: Build web
         run: pnpm --filter @convovault/web build
         env:
-          VITE_API_URL: https://convovault-api.kawadia.workers.dev/api/v1
+          VITE_API_URL: https://diastack-api.kawadia.workers.dev/api/v1
 
       - name: Deploy to Cloudflare Pages
-        run: npx wrangler pages deploy dist --project-name=convovault
+        run: npx wrangler pages deploy dist --project-name=diastack
         working-directory: packages/web
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

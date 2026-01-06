@@ -6,7 +6,7 @@ describe('API Health Check', () => {
     const res = await app.request('/');
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json).toEqual({ status: 'ok', service: 'convovault-api' });
+    expect(json).toEqual({ status: 'ok', service: 'diastack-api' });
   });
 
   it('returns ok status on /api/v1/health', async () => {

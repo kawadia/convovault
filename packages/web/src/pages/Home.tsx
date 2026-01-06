@@ -78,9 +78,14 @@ export default function Home() {
       <header className="bg-bg-secondary border-b border-border">
         <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center mb-4">
-            <h1 className="text-2xl font-bold text-text-primary">
-              ConvoVault
-            </h1>
+            <div>
+              <h1 className="text-2xl font-bold text-text-primary">
+                DiaStack
+              </h1>
+              <p className="text-sm text-text-secondary">
+                Stack of Socratic Dialogues with LLMs
+              </p>
+            </div>
             <button
               onClick={() => setShowImport(true)}
               className="px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-hover transition-colors"

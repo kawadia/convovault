@@ -28,7 +28,7 @@ app.use(
 
 // Health check
 app.get('/', (c) => {
-  return c.json({ status: 'ok', service: 'convovault-api' });
+  return c.json({ status: 'ok', service: 'diastack-api' });
 });
 
 // API v1 routes
