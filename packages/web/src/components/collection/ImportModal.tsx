@@ -70,11 +70,16 @@ export default function ImportModal({ onClose }: ImportModalProps) {
   };
 
   // Parse URLs from input (one per line, filter valid claude.ai/share URLs)
+  // Only accepts URLs that begin with claude.ai/share/ (with or without https://)
+  const isValidClaudeShareUrl = (url: string): boolean => {
+    return /^(https?:\/\/)?claude\.ai\/share\//.test(url);
+  };
+
   const parseUrls = (input: string): string[] => {
     return input
       .split('\n')
       .map(line => line.trim())
-      .filter(line => line.includes('claude.ai/share/'));
+      .filter(line => isValidClaudeShareUrl(line));
   };
 
   // Import a single URL
