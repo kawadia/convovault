@@ -53,7 +53,7 @@ export interface ChatSummary {
   cached?: boolean;
   participants?: Participants;
   userId?: string; // Owner of the chat (who imported it)
-  isFavorite: boolean;
+  isFavorite?: boolean;
 }
 
 export interface ChatDetail extends ChatSummary {
