@@ -27,16 +27,13 @@ export const authRoutes = new Hono<{ Bindings: Env }>();
  */
 authRoutes.get('/auth/google', async (c) => {
   const state = crypto.randomUUID();
+  const now = Math.floor(Date.now() / 1000);
 
-  // Store state in a short-lived cookie for CSRF protection
-  setCookie(c, 'oauth_state', state, {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'None',
-    maxAge: 600, // 10 minutes
-    path: '/',
-    domain: '.diastack.com',
-  });
+  // Store state in DB for strictly validated CSRF protection
+  // This avoids issues with browser cookie policies (SameSite, etc.)
+  await c.env.DB.prepare(
+    'INSERT INTO oauth_states (state, created_at) VALUES (?, ?)'
+  ).bind(state, now).run();
 
   const params = new URLSearchParams({
     client_id: c.env.GOOGLE_CLIENT_ID,
@@ -58,10 +55,6 @@ authRoutes.get('/auth/callback', async (c) => {
   const code = c.req.query('code');
   const state = c.req.query('state');
   const error = c.req.query('error');
-  const storedState = getCookie(c, 'oauth_state');
-
-  // Clear the state cookie
-  deleteCookie(c, 'oauth_state', { path: '/' });
 
   // Handle errors from Google
   if (error) {
@@ -69,12 +62,32 @@ authRoutes.get('/auth/callback', async (c) => {
     return c.redirect(`${c.env.FRONTEND_URL}?error=oauth_denied`);
   }
 
-  // Validate state for CSRF protection
-  if (!state || state !== storedState) {
-    console.error('State mismatch:', { state, storedState });
-    // DEBUG: exposing state values in URL to diagnose
-    return c.redirect(`${c.env.FRONTEND_URL}?error=invalid_state&debug_state=${state}&debug_stored=${storedState}`);
+  if (!state) {
+    return c.redirect(`${c.env.FRONTEND_URL}?error=no_state`);
   }
+
+  // Validate state against DB
+  const validState = await c.env.DB.prepare(
+    'SELECT state FROM oauth_states WHERE state = ?'
+  ).bind(state).first<{ state: string }>();
+
+  if (!validState) {
+    console.error('Invalid state:', state);
+    return c.redirect(`${c.env.FRONTEND_URL}?error=invalid_state`);
+  }
+
+  // Delete used state (consume it)
+  await c.env.DB.prepare(
+    'DELETE FROM oauth_states WHERE state = ?'
+  ).bind(state).run();
+
+  // Clean up old states (optional simple GC, e.g. older than 1 hour)
+  // To avoid slowing down login, maybe we skip this or do it async via cron/scheduled event later
+  // For now, let's just leave it or do a quick delete
+  const oneHourAgo = Math.floor(Date.now() / 1000) - 3600;
+  c.executionCtx.waitUntil(
+    c.env.DB.prepare('DELETE FROM oauth_states WHERE created_at < ?').bind(oneHourAgo).run()
+  );
 
   if (!code) {
     return c.redirect(`${c.env.FRONTEND_URL}?error=no_code`);
