@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router';
 import ChatCard from './ChatCard';
 import type { ChatSummary } from '../../api/client';
@@ -10,9 +10,18 @@ vi.mock('../../contexts/AuthContext', () => ({
   useAuth: vi.fn(),
 }));
 
+// Mock the api client
+vi.mock('../../api/client', () => ({
+  api: {
+    toggleFavorite: vi.fn(),
+  },
+}));
+
 import { useAuth } from '../../contexts/AuthContext';
+import { api } from '../../api/client';
 
 const mockUseAuth = vi.mocked(useAuth);
+const mockApi = vi.mocked(api);
 
 const mockChat: ChatSummary = {
   id: 'test-chat-123',
@@ -187,6 +196,73 @@ describe('ChatCard', () => {
       fireEvent.click(deleteButton);
 
       expect(onDelete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('favorite functionality', () => {
+    it('does not show heart icon when not logged in', () => {
+      mockAuthNotLoggedIn();
+      renderWithRouter(<ChatCard chat={mockChat} />);
+      expect(screen.queryByTitle(/favorites/i)).not.toBeInTheDocument();
+    });
+
+    it('shows heart icon when logged in', () => {
+      mockAuthAsOwner();
+      renderWithRouter(<ChatCard chat={mockChat} />);
+      expect(screen.getByTitle(/favorites/i)).toBeInTheDocument();
+    });
+
+    it('renders filled heart when isFavorite is true', () => {
+      mockAuthAsOwner();
+      const favoriteChat = { ...mockChat, isFavorite: true };
+      renderWithRouter(<ChatCard chat={favoriteChat} />);
+
+      const heartBtn = screen.getByTitle('Remove from favorites');
+      const svg = heartBtn.querySelector('svg');
+      expect(svg).toHaveAttribute('fill', 'currentColor');
+    });
+
+    it('renders outline heart when isFavorite is false', () => {
+      mockAuthAsOwner();
+      renderWithRouter(<ChatCard chat={mockChat} />);
+
+      const heartBtn = screen.getByTitle('Add to favorites');
+      const svg = heartBtn.querySelector('svg');
+      expect(svg).toHaveAttribute('fill', 'none');
+    });
+
+    it('calls api.toggleFavorite when clicked', async () => {
+      mockAuthAsOwner();
+      mockApi.toggleFavorite.mockResolvedValue({ favorite: true });
+
+      renderWithRouter(<ChatCard chat={mockChat} />);
+      const heartBtn = screen.getByTitle('Add to favorites');
+
+      await fireEvent.click(heartBtn);
+
+      expect(mockApi.toggleFavorite).toHaveBeenCalledWith('test-chat-123', true);
+      expect(screen.getByTitle('Remove from favorites')).toBeInTheDocument();
+    });
+
+    it('rolls back state on api failure', async () => {
+      mockAuthAsOwner();
+      mockApi.toggleFavorite.mockRejectedValue(new Error('API Error'));
+
+      // Spy on console.error to avoid noise in test output
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
+
+      renderWithRouter(<ChatCard chat={mockChat} />);
+      const heartBtn = screen.getByTitle('Add to favorites');
+
+      await fireEvent.click(heartBtn);
+
+      expect(mockApi.toggleFavorite).toHaveBeenCalled();
+      // Should revert back to "Add to favorites" after failure
+      await waitFor(() => {
+        expect(screen.getByTitle('Add to favorites')).toBeInTheDocument();
+      });
+
+      consoleSpy.mockRestore();
     });
   });
 });

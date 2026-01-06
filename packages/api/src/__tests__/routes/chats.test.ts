@@ -29,19 +29,34 @@ const createMockDb = (sessionUser: { id: string; role: string } | null = null) =
           }
           // Return mock data based on query
           if (sql.includes('SELECT') && sql.includes('chats')) {
-            const id = bindings[0] as string;
-            return storage.get(`chat:${id}`) || null;
+            // Try to find the chat ID in any of the bindings
+            for (const binding of bindings) {
+              if (typeof binding === 'string' && storage.has(`chat:${binding}`)) {
+                const chat = storage.get(`chat:${binding}`) as any;
+                return { ...chat, is_favorite: storage.get(`fav:${binding}`) ? 1 : 0 };
+              }
+            }
           }
           return null;
         },
         all: async () => {
           statements.push({ sql, bindings });
+          if (sql.includes('SELECT') && sql.includes('chats')) {
+            const results = Array.from(storage.entries())
+              .filter(([key]) => key.startsWith('chat:'))
+              .map(([key, value]: [string, any]) => {
+                const id = key.replace('chat:', '');
+                return { ...value, is_favorite: storage.get(`fav:${id}`) ? 1 : 0 };
+              });
+            return { results };
+          }
           return { results: [] };
         },
       }),
     }),
     // Helper for tests to set up data
     _setChat: (id: string, data: unknown) => storage.set(`chat:${id}`, data),
+    _setFavorite: (id: string, isFav: boolean) => storage.set(`fav:${id}`, isFav),
     _getStatements: () => statements,
     _clear: () => {
       storage.clear();
@@ -345,6 +360,63 @@ describe('chatsRoutes', () => {
       expect(res.status).toBe(200);
       const json = await res.json();
       expect(json).toEqual({ deleted: true });
+    });
+  });
+
+  describe('Favoriting Functionality', () => {
+    it('returns 401 when favoriting without session', async () => {
+      const mockEnv = createMockEnv(null);
+      const res = await app.request('/api/v1/chats/test-chat-id/favorite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ favorite: true }),
+      }, mockEnv);
+
+      expect(res.status).toBe(401);
+    });
+
+    it('toggles favorite status for logged-in user', async () => {
+      const mockEnv = createMockEnv(mockRegularUser);
+      const res = await app.request('/api/v1/chats/test-chat-id/favorite', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cookie': 'session=test-session',
+        },
+        body: JSON.stringify({ favorite: true }),
+      }, mockEnv);
+
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json).toEqual({ favorite: true });
+
+      // Verify DB was called (either INSERT or UPDATE)
+      const statements = (mockEnv.DB as any)._getStatements();
+      const favStatement = statements.find((s: any) => s.sql.includes('user_chats') && (s.sql.includes('INSERT') || s.sql.includes('UPDATE')));
+      expect(favStatement).toBeDefined();
+    });
+
+    it('returns isFavorite in list results', async () => {
+      const mockEnv = createMockEnv(mockRegularUser);
+      const db = (mockEnv.DB as any);
+      db._setChat('test-chat-id', {
+        id: 'test-chat-id',
+        source: 'claude-web',
+        source_url: 'https://claude.ai/share/abc123',
+        title: 'Test Chat',
+        fetched_at: Date.now(),
+        content: '{}',
+      });
+      db._setFavorite('test-chat-id', true);
+
+      const res = await app.request('/api/v1/chats', {
+        method: 'GET',
+        headers: { 'Cookie': 'session=test-session' },
+      }, mockEnv);
+
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json.chats[0]).toHaveProperty('isFavorite', true);
     });
   });
 });
