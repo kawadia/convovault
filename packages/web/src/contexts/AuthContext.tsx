@@ -1,8 +1,9 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 
 // Use api.diastack.com in production, allow override via env var for local dev
-const API_BASE = import.meta.env.VITE_API_URL ||
-  (import.meta.env.PROD ? 'https://api.diastack.com/api/v1' : '/api/v1');
+const API_BASE = import.meta.env.PROD
+  ? 'https://api.diastack.com/api/v1'
+  : (import.meta.env.VITE_API_URL || '/api/v1');
 
 export interface User {
   id: string;
