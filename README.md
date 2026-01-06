@@ -1,8 +1,8 @@
-# ConvoVault
+# DiaStack
 
-A clean web app for viewing and organizing shared AI chat transcripts.
+A clean web app for viewing and organizing socratric style shared AI chat dialogues for deeper learning.
 
-**Live Demo:** https://convovault.pages.dev
+**Live Demo:** https://diastack.com
 
 ## Features
 
