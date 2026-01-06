@@ -1,8 +1,9 @@
 import type { Message, Participants } from '@convovault/shared';
 
 // Use api.diastack.com in production, allow override via env var for local dev
-const API_BASE = import.meta.env.VITE_API_URL ||
-  (import.meta.env.PROD ? 'https://api.diastack.com/api/v1' : '/api/v1');
+const API_BASE = import.meta.env.PROD
+  ? 'https://api.diastack.com/api/v1'
+  : (import.meta.env.VITE_API_URL || '/api/v1');
 
 // Get or create anonymous user ID (for non-logged-in users)
 function getUserId(): string {
@@ -52,6 +53,7 @@ export interface ChatSummary {
   cached?: boolean;
   participants?: Participants;
   userId?: string; // Owner of the chat (who imported it)
+  isFavorite: boolean;
 }
 
 export interface ChatDetail extends ChatSummary {
@@ -97,5 +99,13 @@ export const api = {
     const params = new URLSearchParams({ q: query });
     if (chatId) params.append('chatId', chatId);
     return fetchApi<{ results: SearchResult[] }>(`/search?${params.toString()}`);
+  },
+
+  // Toggle favorite status
+  async toggleFavorite(id: string, favorite: boolean): Promise<{ favorite: boolean }> {
+    return fetchApi<{ favorite: boolean }>(`/chats/${id}/favorite`, {
+      method: 'POST',
+      body: JSON.stringify({ favorite }),
+    });
   },
 };
