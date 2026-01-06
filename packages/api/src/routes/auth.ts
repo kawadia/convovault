@@ -32,9 +32,10 @@ authRoutes.get('/auth/google', async (c) => {
   setCookie(c, 'oauth_state', state, {
     httpOnly: true,
     secure: true,
-    sameSite: 'Lax',
+    sameSite: 'None',
     maxAge: 600, // 10 minutes
     path: '/',
+    domain: '.diastack.com',
   });
 
   const params = new URLSearchParams({
