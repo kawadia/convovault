@@ -152,7 +152,7 @@ authRoutes.get('/auth/callback', async (c) => {
       'INSERT INTO sessions (id, user_id, expires_at, created_at) VALUES (?, ?, ?, ?)'
     ).bind(sessionId, finalUserId, expiresAt, now).run();
 
-    // Set session cookie
+    // Set session cookie (for same-origin API access)
     // SameSite=None required for cross-origin requests from frontend
     setCookie(c, 'session', sessionId, {
       httpOnly: true,
@@ -162,8 +162,9 @@ authRoutes.get('/auth/callback', async (c) => {
       path: '/',
     });
 
-    // Redirect to frontend
-    return c.redirect(c.env.FRONTEND_URL);
+    // Redirect to frontend with session token in URL for cross-origin auth
+    // Frontend will store this in localStorage for subsequent API calls
+    return c.redirect(`${c.env.FRONTEND_URL}?token=${sessionId}`);
   } catch (err) {
     console.error('OAuth callback error:', err);
     return c.redirect(`${c.env.FRONTEND_URL}?error=callback_failed`);
@@ -172,9 +173,16 @@ authRoutes.get('/auth/callback', async (c) => {
 
 /**
  * Get current user from session
+ * Supports both cookie-based auth and Authorization header (Bearer token)
  */
 authRoutes.get('/auth/me', async (c) => {
-  const sessionId = getCookie(c, 'session');
+  // Try Authorization header first, then fall back to cookie
+  const authHeader = c.req.header('Authorization');
+  let sessionId = getCookie(c, 'session');
+
+  if (authHeader?.startsWith('Bearer ')) {
+    sessionId = authHeader.slice(7);
+  }
 
   if (!sessionId) {
     return c.json({ user: null });

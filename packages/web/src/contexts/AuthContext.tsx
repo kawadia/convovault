@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api/v1';
+const TOKEN_KEY = 'diastack-session-token';
 
 export interface User {
   id: string;
@@ -20,17 +21,59 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+// Helper to get stored token
+function getStoredToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+// Helper to store token
+function storeToken(token: string): void {
+  localStorage.setItem(TOKEN_KEY, token);
+}
+
+// Helper to clear token
+function clearToken(): void {
+  localStorage.removeItem(TOKEN_KEY);
+}
+
+// Helper to make authenticated fetch requests
+async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  const token = getStoredToken();
+  const headers = new Headers(options.headers);
+
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
+  return fetch(url, {
+    ...options,
+    headers,
+    credentials: 'include', // Still include cookies as fallback
+  });
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Handle token from URL on mount (after OAuth callback)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+
+    if (token) {
+      // Store the token
+      storeToken(token);
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
 
   // Fetch current user on mount
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const response = await fetch(`${API_BASE}/auth/me`, {
-          credentials: 'include',
-        });
+        const response = await authFetch(`${API_BASE}/auth/me`);
 
         if (response.ok) {
           const data = await response.json();
@@ -53,10 +96,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
-      await fetch(`${API_BASE}/auth/logout`, {
+      await authFetch(`${API_BASE}/auth/logout`, {
         method: 'POST',
-        credentials: 'include',
       });
+      clearToken();
       setUser(null);
     } catch (error) {
       console.error('Logout failed:', error);
@@ -85,3 +128,6 @@ export function useAuth() {
   }
   return context;
 }
+
+// Export authFetch for use in other parts of the app
+export { authFetch };

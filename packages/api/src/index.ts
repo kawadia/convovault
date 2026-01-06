@@ -40,7 +40,7 @@ app.use(
       return allowedOrigins[0]; // Default for non-browser requests
     },
     allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'X-User-ID'],
+    allowHeaders: ['Content-Type', 'X-User-ID', 'Authorization'],
     exposeHeaders: ['X-User-ID'],
     credentials: true, // Allow cookies
   })
