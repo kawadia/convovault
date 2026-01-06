@@ -1,4 +1,30 @@
--- ConvoVault D1 Database Schema
+-- DiaStack D1 Database Schema
+
+-- Users table (Google OAuth)
+CREATE TABLE IF NOT EXISTS users (
+  id TEXT PRIMARY KEY,
+  google_id TEXT UNIQUE NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  name TEXT,
+  picture TEXT,
+  role TEXT NOT NULL DEFAULT 'user',
+  created_at INTEGER NOT NULL DEFAULT (unixepoch())
+);
+
+CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+
+-- Sessions table
+CREATE TABLE IF NOT EXISTS sessions (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  expires_at INTEGER NOT NULL,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at);
 
 -- Chats are cached globally (public content)
 CREATE TABLE IF NOT EXISTS chats (
@@ -10,11 +36,13 @@ CREATE TABLE IF NOT EXISTS chats (
   fetched_at INTEGER NOT NULL,
   message_count INTEGER,
   word_count INTEGER,
-  content TEXT NOT NULL
+  content TEXT NOT NULL,
+  user_id TEXT REFERENCES users(id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_chats_source ON chats(source);
 CREATE INDEX IF NOT EXISTS idx_chats_fetched ON chats(fetched_at);
+CREATE INDEX IF NOT EXISTS idx_chats_user ON chats(user_id);
 
 -- User's imported chats and reading state
 CREATE TABLE IF NOT EXISTS user_chats (

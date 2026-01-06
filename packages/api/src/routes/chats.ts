@@ -2,10 +2,13 @@ import { Hono } from 'hono';
 import { ImportChatRequestSchema, ChatTranscript } from '@convovault/shared';
 import { z } from 'zod';
 import type { Env } from '../index';
-import { adminAuth } from '../middleware/auth';
+import { sessionAuth, requireAuth } from '../middleware/auth';
 import { claudeWebParser } from '../parsers/claude-web';
 
 export const chatsRoutes = new Hono<{ Bindings: Env }>();
+
+// Apply session auth to all routes - attaches user to context if logged in
+chatsRoutes.use('*', sessionAuth);
 
 // List of supported parsers
 const parsers = [claudeWebParser];
@@ -113,12 +116,12 @@ const ImportWithHtmlSchema = z.object({
 
 /**
  * POST /chats/import
- * Import a chat from a URL (admin only)
+ * Import a chat from a URL (requires login)
  *
  * If `html` is provided in the body, it will be used directly.
  * Otherwise, the URL will be fetched (note: RSC pages may not parse correctly).
  */
-chatsRoutes.post('/chats/import', adminAuth, async (c) => {
+chatsRoutes.post('/chats/import', requireAuth, async (c) => {
   // Parse and validate request body
   const body = await c.req.json();
   const parseResult = ImportWithHtmlSchema.safeParse(body);
@@ -186,11 +189,12 @@ chatsRoutes.post('/chats/import', adminAuth, async (c) => {
   // Parse the HTML
   const transcript = parser.parse(html, url);
 
-  // Store in database
+  // Store in database with user_id of the importer
+  const user = c.get('user');
   try {
     await c.env.DB.prepare(
-      `INSERT INTO chats (id, source, source_url, title, created_at, fetched_at, message_count, word_count, content)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO chats (id, source, source_url, title, created_at, fetched_at, message_count, word_count, content, user_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
       .bind(
         transcript.id,
@@ -201,7 +205,8 @@ chatsRoutes.post('/chats/import', adminAuth, async (c) => {
         transcript.fetchedAt,
         transcript.messageCount,
         transcript.wordCount,
-        JSON.stringify(transcript)
+        JSON.stringify(transcript),
+        user?.id || null
       )
       .run();
 
@@ -230,7 +235,7 @@ chatsRoutes.post('/chats/import', adminAuth, async (c) => {
 chatsRoutes.get('/chats', async (c) => {
   try {
     const result = await c.env.DB.prepare(
-      'SELECT id, source, source_url, title, created_at, fetched_at, message_count, word_count, content FROM chats ORDER BY fetched_at DESC'
+      'SELECT id, source, source_url, title, created_at, fetched_at, message_count, word_count, content, user_id FROM chats ORDER BY fetched_at DESC'
     ).all();
 
     const chats = (result.results || []).map((row) => {
@@ -255,6 +260,7 @@ chatsRoutes.get('/chats', async (c) => {
         messageCount: row.message_count,
         wordCount: row.word_count,
         participants,
+        userId: row.user_id, // Include owner ID for permission checks
       };
     });
 
@@ -288,10 +294,27 @@ chatsRoutes.get('/chats/:id', async (c) => {
 
 /**
  * DELETE /chats/:id
- * Delete a chat (admin only)
+ * Delete a chat (owner or admin)
  */
-chatsRoutes.delete('/chats/:id', adminAuth, async (c) => {
+chatsRoutes.delete('/chats/:id', requireAuth, async (c) => {
   const { id } = c.req.param();
+  const user = c.get('user');
+
+  // Check if user can delete this chat (owner or admin)
+  const chat = await c.env.DB.prepare('SELECT user_id FROM chats WHERE id = ?')
+    .bind(id)
+    .first<{ user_id: string | null }>();
+
+  if (!chat) {
+    return c.json({ error: 'Chat not found' }, 404);
+  }
+
+  const isOwner = chat.user_id === user?.id;
+  const isAdmin = user?.role === 'admin';
+
+  if (!isOwner && !isAdmin) {
+    return c.json({ error: 'You can only delete your own chats' }, 403);
+  }
 
   try {
     // Delete from chats table

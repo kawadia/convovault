@@ -1,10 +1,21 @@
 import { createMiddleware } from 'hono/factory';
+import { getCookie } from 'hono/cookie';
 import type { Env } from '../index';
 
-// Extend Hono's Variables type to include userId
+// User type for session auth
+export interface SessionUser {
+  id: string;
+  email: string;
+  name: string;
+  picture: string;
+  role: 'user' | 'admin';
+}
+
+// Extend Hono's Variables type to include userId and user
 declare module 'hono' {
   interface ContextVariableMap {
     userId: string;
+    user: SessionUser | null;
   }
 }
 
@@ -85,3 +96,71 @@ function generateUserId(): string {
 
   return parts.join('-');
 }
+
+/**
+ * Session authentication middleware
+ *
+ * Reads the session cookie and attaches the user to the context if valid.
+ * Does NOT require authentication - use requireAuth for that.
+ */
+export const sessionAuth = createMiddleware<{ Bindings: Env }>(
+  async (c, next) => {
+    const sessionId = getCookie(c, 'session');
+    c.set('user', null);
+
+    if (sessionId) {
+      const now = Math.floor(Date.now() / 1000);
+
+      const result = await c.env.DB.prepare(`
+        SELECT u.id, u.email, u.name, u.picture, u.role
+        FROM sessions s
+        JOIN users u ON s.user_id = u.id
+        WHERE s.id = ? AND s.expires_at > ?
+      `).bind(sessionId, now).first<SessionUser>();
+
+      if (result) {
+        c.set('user', result);
+      }
+    }
+
+    await next();
+  }
+);
+
+/**
+ * Require authentication middleware
+ *
+ * Must be used after sessionAuth. Returns 401 if no valid session.
+ */
+export const requireAuth = createMiddleware<{ Bindings: Env }>(
+  async (c, next) => {
+    const user = c.get('user');
+
+    if (!user) {
+      return c.json({ error: 'Authentication required' }, 401);
+    }
+
+    await next();
+  }
+);
+
+/**
+ * Require admin role middleware
+ *
+ * Must be used after sessionAuth. Returns 403 if not admin.
+ */
+export const requireAdmin = createMiddleware<{ Bindings: Env }>(
+  async (c, next) => {
+    const user = c.get('user');
+
+    if (!user) {
+      return c.json({ error: 'Authentication required' }, 401);
+    }
+
+    if (user.role !== 'admin') {
+      return c.json({ error: 'Admin access required' }, 403);
+    }
+
+    await next();
+  }
+);

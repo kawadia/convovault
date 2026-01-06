@@ -1,6 +1,6 @@
 import { Link } from 'react-router';
 import type { ChatSummary } from '../../api/client';
-import { isAdmin } from '../../api/client';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface ChatCardProps {
   chat: ChatSummary;
@@ -8,6 +8,8 @@ interface ChatCardProps {
 }
 
 export default function ChatCard({ chat, onDelete }: ChatCardProps) {
+  const { user, isAdmin } = useAuth();
+
   const formattedDate = new Date(chat.fetchedAt).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
@@ -27,9 +29,12 @@ export default function ChatCard({ chat, onDelete }: ChatCardProps) {
     ? `${chat.participants.user} & ${chat.participants.assistant}`
     : null;
 
+  // User can delete if they are the owner or an admin
+  const canDelete = user && (chat.userId === user.id || isAdmin);
+
   return (
     <div className="relative group">
-      {isAdmin() && onDelete && (
+      {canDelete && onDelete && (
         <button
           onClick={handleDelete}
           className="absolute top-2 right-2 z-10 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"

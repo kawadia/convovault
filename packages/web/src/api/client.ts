@@ -2,32 +2,15 @@ import type { Message, Participants } from '@convovault/shared';
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api/v1';
 
-// Get or create anonymous user ID
+// Get or create anonymous user ID (for non-logged-in users)
 function getUserId(): string {
-  const key = 'convovault-user-id';
+  const key = 'diastack-user-id';
   let userId = localStorage.getItem(key);
   if (!userId) {
     userId = crypto.randomUUID();
     localStorage.setItem(key, userId);
   }
   return userId;
-}
-
-// Get admin key if stored
-function getAdminKey(): string | null {
-  return localStorage.getItem('convovault-admin-key');
-}
-
-export function setAdminKey(key: string): void {
-  localStorage.setItem('convovault-admin-key', key);
-}
-
-export function clearAdminKey(): void {
-  localStorage.removeItem('convovault-admin-key');
-}
-
-export function isAdmin(): boolean {
-  return !!getAdminKey();
 }
 
 async function fetchApi<T>(
@@ -39,13 +22,9 @@ async function fetchApi<T>(
     'X-User-ID': getUserId(),
   };
 
-  const adminKey = getAdminKey();
-  if (adminKey) {
-    headers['X-Admin-Key'] = adminKey;
-  }
-
   const response = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
+    credentials: 'include', // Include cookies for session auth
     headers: {
       ...headers,
       ...options.headers,
@@ -70,6 +49,7 @@ export interface ChatSummary {
   fetchedAt: number;
   cached?: boolean;
   participants?: Participants;
+  userId?: string; // Owner of the chat (who imported it)
 }
 
 export interface ChatDetail extends ChatSummary {
@@ -90,7 +70,7 @@ export const api = {
     return fetchApi<{ chats: ChatSummary[] }>('/chats');
   },
 
-  // Import a chat (admin only)
+  // Import a chat (requires login)
   async importChat(url: string, html?: string): Promise<ChatSummary> {
     return fetchApi<ChatSummary>('/chats/import', {
       method: 'POST',
@@ -103,7 +83,7 @@ export const api = {
     return fetchApi<ChatDetail>(`/chats/${id}`);
   },
 
-  // Delete a chat (admin only)
+  // Delete a chat (owner or admin)
   async deleteChat(id: string): Promise<{ deleted: boolean }> {
     return fetchApi<{ deleted: boolean }>(`/chats/${id}`, {
       method: 'DELETE',

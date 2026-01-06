@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { chatsRoutes } from './routes/chats';
+import { authRoutes } from './routes/auth';
 
 // Types for Cloudflare Workers environment
 export interface Env {
@@ -10,19 +11,36 @@ export interface Env {
   // Cloudflare Browser Rendering API credentials
   CF_ACCOUNT_ID: string;
   CF_API_TOKEN: string;
+  // Google OAuth credentials
+  GOOGLE_CLIENT_ID: string;
+  GOOGLE_CLIENT_SECRET: string;
+  AUTH_REDIRECT_URI: string;
+  FRONTEND_URL: string;
 }
 
 // Create Hono app with typed environment
 const app = new Hono<{ Bindings: Env }>();
 
-// CORS middleware
+// CORS middleware - dynamic origin for cookies
 app.use(
   '*',
   cors({
-    origin: '*', // Configure properly for production
+    origin: (origin) => {
+      // Allow requests from these origins (needed for cookies)
+      const allowedOrigins = [
+        'http://localhost:5173',
+        'https://diastack.pages.dev',
+      ];
+      // Also allow any *.diastack.pages.dev preview URLs
+      if (origin && (allowedOrigins.includes(origin) || origin.endsWith('.diastack.pages.dev'))) {
+        return origin;
+      }
+      return allowedOrigins[0]; // Default for non-browser requests
+    },
     allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'X-User-ID', 'X-Admin-Key'],
+    allowHeaders: ['Content-Type', 'X-User-ID'],
     exposeHeaders: ['X-User-ID'],
+    credentials: true, // Allow cookies
   })
 );
 
@@ -36,8 +54,9 @@ app.get('/api/v1/health', (c) => {
   return c.json({ status: 'ok', version: '1.0.0' });
 });
 
-// Mount chat routes
+// Mount routes
 app.route('/api/v1', chatsRoutes);
+app.route('/api/v1', authRoutes);
 
 // 404 handler
 app.notFound((c) => {
