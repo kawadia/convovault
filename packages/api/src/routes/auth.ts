@@ -158,7 +158,7 @@ authRoutes.get('/auth/callback', async (c) => {
       sameSite: 'Lax',
       maxAge: SESSION_DURATION,
       path: '/',
-      domain: '.diastack.com', // Share cookie across subdomains
+      domain: '.diastack.com',
     });
 
     // Redirect to frontend
