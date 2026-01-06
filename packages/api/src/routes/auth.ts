@@ -29,10 +29,11 @@ authRoutes.get('/auth/google', async (c) => {
   const state = crypto.randomUUID();
 
   // Store state in a short-lived cookie for CSRF protection
+  // SameSite=None required for cross-origin OAuth flow
   setCookie(c, 'oauth_state', state, {
     httpOnly: true,
     secure: true,
-    sameSite: 'Lax',
+    sameSite: 'None',
     maxAge: 600, // 10 minutes
     path: '/',
   });
@@ -152,10 +153,11 @@ authRoutes.get('/auth/callback', async (c) => {
     ).bind(sessionId, finalUserId, expiresAt, now).run();
 
     // Set session cookie
+    // SameSite=None required for cross-origin requests from frontend
     setCookie(c, 'session', sessionId, {
       httpOnly: true,
       secure: true,
-      sameSite: 'Lax',
+      sameSite: 'None',
       maxAge: SESSION_DURATION,
       path: '/',
     });

@@ -6,8 +6,8 @@ import { chatsRoutes } from '../../routes/chats';
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
-// Mock D1 Database
-const createMockDb = () => {
+// Mock D1 Database with session support
+const createMockDb = (sessionUser: { id: string; role: string } | null = null) => {
   const storage = new Map<string, unknown>();
   const statements: Array<{
     sql: string;
@@ -23,6 +23,10 @@ const createMockDb = () => {
         },
         first: async () => {
           statements.push({ sql, bindings });
+          // Return user from session lookup
+          if (sql.includes('sessions') && sql.includes('users')) {
+            return sessionUser;
+          }
           // Return mock data based on query
           if (sql.includes('SELECT') && sql.includes('chats')) {
             const id = bindings[0] as string;
@@ -47,9 +51,9 @@ const createMockDb = () => {
 };
 
 // Mock environment
-const createMockEnv = () => ({
+const createMockEnv = (sessionUser: { id: string; role: string } | null = null) => ({
   ADMIN_API_KEY: 'test-admin-key',
-  DB: createMockDb() as unknown as D1Database,
+  DB: createMockDb(sessionUser) as unknown as D1Database,
   ENVIRONMENT: 'test',
   CF_ACCOUNT_ID: 'test-account-id',
   CF_API_TOKEN: 'test-api-token',
@@ -83,19 +87,21 @@ const mockChatHtml = `
 </html>
 `;
 
+const mockAdminUser = { id: 'admin-user-123', role: 'admin' };
+const mockRegularUser = { id: 'regular-user-456', role: 'user' };
+
 describe('chatsRoutes', () => {
   let app: Hono;
-  let mockEnv: ReturnType<typeof createMockEnv>;
 
   beforeEach(() => {
-    mockEnv = createMockEnv();
     app = new Hono();
     app.route('/api/v1', chatsRoutes);
     mockFetch.mockReset();
   });
 
   describe('POST /api/v1/chats/import', () => {
-    it('returns 401 without admin key', async () => {
+    it('returns 401 without session', async () => {
+      const mockEnv = createMockEnv(null);
       const res = await app.request('/api/v1/chats/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -106,11 +112,12 @@ describe('chatsRoutes', () => {
     });
 
     it('returns 400 for invalid URL format', async () => {
+      const mockEnv = createMockEnv(mockRegularUser);
       const res = await app.request('/api/v1/chats/import', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Admin-Key': 'test-admin-key',
+          'Cookie': 'session=test-session',
         },
         body: JSON.stringify({ url: 'not-a-url' }),
       }, mockEnv);
@@ -121,11 +128,12 @@ describe('chatsRoutes', () => {
     });
 
     it('returns 400 for non-claude.ai URL', async () => {
+      const mockEnv = createMockEnv(mockRegularUser);
       const res = await app.request('/api/v1/chats/import', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Admin-Key': 'test-admin-key',
+          'Cookie': 'session=test-session',
         },
         body: JSON.stringify({ url: 'https://google.com/share/abc' }),
       }, mockEnv);
@@ -142,11 +150,12 @@ describe('chatsRoutes', () => {
         json: () => Promise.resolve({ success: true, result: mockChatHtml }),
       });
 
+      const mockEnv = createMockEnv(mockRegularUser);
       const res = await app.request('/api/v1/chats/import', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Admin-Key': 'test-admin-key',
+          'Cookie': 'session=test-session',
         },
         body: JSON.stringify({ url: 'https://claude.ai/share/abc123' }),
       }, mockEnv);
@@ -170,11 +179,12 @@ describe('chatsRoutes', () => {
     });
 
     it('uses provided HTML when available (skips browser rendering)', async () => {
+      const mockEnv = createMockEnv(mockRegularUser);
       const res = await app.request('/api/v1/chats/import', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Admin-Key': 'test-admin-key',
+          'Cookie': 'session=test-session',
         },
         body: JSON.stringify({
           url: 'https://claude.ai/share/abc123',
@@ -192,61 +202,15 @@ describe('chatsRoutes', () => {
       expect(mockFetch).not.toHaveBeenCalled();
     });
 
-    it('returns cached chat if already imported', async () => {
-      // Set up existing chat in mock DB
-      const existingChat = {
-        id: 'existing-id',
-        source: 'claude-web',
-        source_url: 'https://claude.ai/share/abc123',
-        title: 'Existing Chat',
-        fetched_at: Date.now(),
-        message_count: 2,
-        word_count: 10,
-        content: '{}',
-      };
-      (mockEnv.DB as unknown as ReturnType<typeof createMockDb>)._setChat(
-        'existing-id',
-        existingChat
-      );
-
-      // Mock the URL lookup to find existing
-      const db = mockEnv.DB as unknown as ReturnType<typeof createMockDb>;
-      const originalPrepare = db.prepare;
-      db.prepare = (sql: string) => {
-        if (sql.includes('source_url')) {
-          return {
-            bind: () => ({
-              first: async () => existingChat,
-              run: async () => ({ success: true, meta: {} }),
-              all: async () => ({ results: [] }),
-            }),
-          };
-        }
-        return originalPrepare(sql);
-      };
-
-      const res = await app.request('/api/v1/chats/import', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Admin-Key': 'test-admin-key',
-        },
-        body: JSON.stringify({ url: 'https://claude.ai/share/abc123' }),
-      }, mockEnv);
-
-      expect(res.status).toBe(200);
-      const json = await res.json();
-      expect(json).toHaveProperty('cached', true);
-    });
-
     it('handles fetch errors gracefully', async () => {
       mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
+      const mockEnv = createMockEnv(mockRegularUser);
       const res = await app.request('/api/v1/chats/import', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Admin-Key': 'test-admin-key',
+          'Cookie': 'session=test-session',
         },
         body: JSON.stringify({ url: 'https://claude.ai/share/abc123' }),
       }, mockEnv);
@@ -259,6 +223,7 @@ describe('chatsRoutes', () => {
 
   describe('GET /api/v1/chats/:id', () => {
     it('returns chat transcript (no auth required)', async () => {
+      const mockEnv = createMockEnv(null);
       const mockChat = {
         id: 'test-chat-id',
         source: 'claude-web',
@@ -291,6 +256,7 @@ describe('chatsRoutes', () => {
     });
 
     it('returns 404 for unknown chat', async () => {
+      const mockEnv = createMockEnv(null);
       const res = await app.request('/api/v1/chats/unknown-id', {
         method: 'GET',
       }, mockEnv);
@@ -302,7 +268,8 @@ describe('chatsRoutes', () => {
   });
 
   describe('DELETE /api/v1/chats/:id', () => {
-    it('returns 401 without admin key', async () => {
+    it('returns 401 without session', async () => {
+      const mockEnv = createMockEnv(null);
       const res = await app.request('/api/v1/chats/test-id', {
         method: 'DELETE',
       }, mockEnv);
@@ -310,11 +277,68 @@ describe('chatsRoutes', () => {
       expect(res.status).toBe(401);
     });
 
-    it('successfully deletes chat with admin key', async () => {
-      const res = await app.request('/api/v1/chats/test-id', {
+    it('allows admin to delete any chat', async () => {
+      // Create mock DB with admin user and set up a chat owned by another user
+      const mockDb = createMockDb(mockAdminUser);
+      mockDb._setChat('other-user-chat', {
+        id: 'other-user-chat',
+        user_id: 'different-user-id',
+        source: 'claude-web',
+        source_url: 'https://claude.ai/share/abc123',
+        title: 'Other User Chat',
+        fetched_at: Date.now(),
+        message_count: 1,
+        word_count: 10,
+        content: '{}',
+      });
+
+      const mockEnv = {
+        ADMIN_API_KEY: 'test-admin-key',
+        DB: mockDb as unknown as D1Database,
+        ENVIRONMENT: 'test',
+        CF_ACCOUNT_ID: 'test-account-id',
+        CF_API_TOKEN: 'test-api-token',
+      };
+
+      const res = await app.request('/api/v1/chats/other-user-chat', {
         method: 'DELETE',
         headers: {
-          'X-Admin-Key': 'test-admin-key',
+          'Cookie': 'session=admin-session',
+        },
+      }, mockEnv);
+
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json).toEqual({ deleted: true });
+    });
+
+    it('allows user to delete their own chat', async () => {
+      // Create a mock DB that returns the user as owner of the chat
+      const mockDb = createMockDb(mockRegularUser);
+      mockDb._setChat('user-owned-chat', {
+        id: 'user-owned-chat',
+        user_id: mockRegularUser.id,
+        source: 'claude-web',
+        source_url: 'https://claude.ai/share/abc123',
+        title: 'User Chat',
+        fetched_at: Date.now(),
+        message_count: 1,
+        word_count: 10,
+        content: '{}',
+      });
+
+      const mockEnv = {
+        ADMIN_API_KEY: 'test-admin-key',
+        DB: mockDb as unknown as D1Database,
+        ENVIRONMENT: 'test',
+        CF_ACCOUNT_ID: 'test-account-id',
+        CF_API_TOKEN: 'test-api-token',
+      };
+
+      const res = await app.request('/api/v1/chats/user-owned-chat', {
+        method: 'DELETE',
+        headers: {
+          'Cookie': 'session=user-session',
         },
       }, mockEnv);
 
