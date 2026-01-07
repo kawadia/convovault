@@ -283,9 +283,9 @@ export default function Chat() {
         )}
       </header>
 
-      {/* Disclaimer banner like Claude */}
-      <div className="bg-bg-secondary border-b border-border">
-        <div className="max-w-3xl mx-auto px-6 py-3">
+      {/* Disclaimer banner */}
+      <div className="max-w-3xl mx-auto px-6 pt-6">
+        <div className="bg-bg-secondary border border-border rounded-lg px-4 py-3">
           <div className="flex items-start gap-3 text-sm text-text-muted">
             <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
