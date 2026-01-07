@@ -19,6 +19,7 @@ export default function ChatCard({ chat, onDelete }: ChatCardProps) {
   });
 
   const [isFavorite, setIsFavorite] = useState(chat.isFavorite);
+  const [isBookmarked, setIsBookmarked] = useState(false);
 
   const handleDelete = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -42,6 +43,12 @@ export default function ChatCard({ chat, onDelete }: ChatCardProps) {
       console.error('Failed to toggle favorite:', error);
       setIsFavorite(!nextState); // Rollback
     }
+  };
+
+  const handleToggleBookmark = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsBookmarked(!isBookmarked);
   };
 
   // Format participants display
@@ -75,6 +82,31 @@ export default function ChatCard({ chat, onDelete }: ChatCardProps) {
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+              />
+            </svg>
+          </button>
+        )}
+
+        {user && (
+          <button
+            onClick={handleToggleBookmark}
+            className={`p-1.5 transition-all ${isBookmarked
+              ? 'text-accent opacity-100'
+              : 'text-text-secondary opacity-0 group-hover:opacity-100'
+              } hover:scale-110 active:scale-95`}
+            title={isBookmarked ? 'Remove bookmark' : 'Bookmark chat'}
+          >
+            <svg
+              className="w-5 h-5 transition-colors"
+              fill={isBookmarked ? 'currentColor' : 'none'}
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z"
               />
             </svg>
           </button>

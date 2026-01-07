@@ -265,4 +265,30 @@ describe('ChatCard', () => {
       consoleSpy.mockRestore();
     });
   });
+
+  describe('bookmark functionality', () => {
+    it('does not show bookmark icon when not logged in', () => {
+      mockAuthNotLoggedIn();
+      renderWithRouter(<ChatCard chat={mockChat} />);
+      expect(screen.queryByTitle(/bookmark/i)).not.toBeInTheDocument();
+    });
+
+    it('shows bookmark icon when logged in', () => {
+      mockAuthAsOwner();
+      renderWithRouter(<ChatCard chat={mockChat} />);
+      expect(screen.getByTitle(/bookmark/i)).toBeInTheDocument();
+    });
+
+    it('toggles bookmark icon when clicked', async () => {
+      mockAuthAsOwner();
+      renderWithRouter(<ChatCard chat={mockChat} />);
+      const bookmarkBtn = screen.getByTitle('Bookmark chat');
+
+      fireEvent.click(bookmarkBtn);
+      expect(screen.getByTitle('Remove bookmark')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByTitle('Remove bookmark'));
+      expect(screen.getByTitle('Bookmark chat')).toBeInTheDocument();
+    });
+  });
 });
