@@ -51,12 +51,15 @@ export default function Home() {
       await queryClient.cancelQueries({ queryKey: ['chats'] });
       const previousChats = queryClient.getQueryData<{ chats: any[] }>(['chats']);
 
-      queryClient.setQueryData(['chats'], (old: any) => ({
-        ...old,
-        chats: old.chats.map((c: any) =>
-          c.id === id ? { ...c, isBookmarked: bookmark } : c
-        )
-      }));
+      queryClient.setQueryData(['chats'], (old: any) => {
+        if (!old?.chats) return old;
+        return {
+          ...old,
+          chats: old.chats.map((c: any) =>
+            c.id === id ? { ...c, isBookmarked: bookmark } : c
+          )
+        };
+      });
 
       return { previousChats };
     },
@@ -82,23 +85,29 @@ export default function Home() {
       // Update chats list
       await queryClient.cancelQueries({ queryKey: ['chats'] });
       const previousChats = queryClient.getQueryData<{ chats: any[] }>(['chats']);
-      queryClient.setQueryData(['chats'], (old: any) => ({
-        ...old,
-        chats: old.chats.map((c: any) =>
-          c.id === id ? { ...c, isFavorite: favorite } : c
-        )
-      }));
+      queryClient.setQueryData(['chats'], (old: any) => {
+        if (!old?.chats) return old;
+        return {
+          ...old,
+          chats: old.chats.map((c: any) =>
+            c.id === id ? { ...c, isFavorite: favorite } : c
+          )
+        };
+      });
 
       // Update social counts
       await queryClient.cancelQueries({ queryKey: ['social-counts'] });
       const previousSocial = queryClient.getQueryData<{ counts: Record<string, number> }>(['social-counts']);
-      queryClient.setQueryData(['social-counts'], (old: any) => ({
-        ...old,
-        counts: {
-          ...old.counts,
-          [id]: (old.counts[id] || 0) + (favorite ? 1 : -1)
-        }
-      }));
+      queryClient.setQueryData(['social-counts'], (old: any) => {
+        const counts = old?.counts || {};
+        return {
+          ...old,
+          counts: {
+            ...counts,
+            [id]: (counts[id] || 0) + (favorite ? 1 : -1)
+          }
+        };
+      });
 
       return { previousChats, previousSocial };
     },
@@ -417,7 +426,7 @@ export default function Home() {
                     onDelete={handleDelete}
                     isBookmarked={chat.isBookmarked}
                     onToggleBookmark={(id) => toggleBookmark(id, !!chat.isBookmarked)}
-                    isFavorite={chat.isFavorite}
+                    isFavorite={!!chat.isFavorite}
                     onToggleFavorite={(id) => toggleFavorite(id, !!chat.isFavorite)}
                     onLoginRequired={(title, message) => setLoginPrompt({ title, message })}
                     favoriteCount={socialCounts[chat.id]}
