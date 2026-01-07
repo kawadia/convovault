@@ -134,7 +134,7 @@ export default function Chat() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#212121] flex items-center justify-center">
+      <div className="min-h-screen bg-[#2f2f2f] flex items-center justify-center">
         <div className="text-[#888]">Loading...</div>
       </div>
     );
@@ -142,7 +142,7 @@ export default function Chat() {
 
   if (error || !chat) {
     return (
-      <div className="min-h-screen bg-[#212121] flex flex-col items-center justify-center gap-4">
+      <div className="min-h-screen bg-[#2f2f2f] flex flex-col items-center justify-center gap-4">
         <div className="text-red-400">Chat not found</div>
         <Link to="/" className="text-accent hover:underline">
           Back to home
@@ -152,9 +152,9 @@ export default function Chat() {
   }
 
   return (
-    <div className="min-h-screen bg-[#212121]">
+    <div className="min-h-screen bg-[#2f2f2f]">
       {/* Minimal sticky header */}
-      <header className="sticky top-0 z-20 bg-[#212121]/95 backdrop-blur-sm border-b border-[#333]">
+      <header className="sticky top-0 z-20 bg-[#2f2f2f]/95 backdrop-blur-sm border-b border-[#3a3a3a]">
         <div className="max-w-3xl mx-auto px-6 py-3 flex items-center gap-4">
           <Link
             to="/"

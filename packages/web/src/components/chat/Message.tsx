@@ -46,16 +46,16 @@ export default function Message({ message, globalFoldState, isHighlighted }: Mes
   }, [isHighlighted]);
 
   // Generate preview text for collapsed state
-  const previewText = message.content[0]?.content.substring(0, 150).replace(/\n/g, ' ') || '';
+  const previewText = message.content[0]?.content.substring(0, 200).replace(/\n/g, ' ') || '';
 
   if (isUser) {
-    // User message: right-aligned with dark rounded background
+    // User message: right-aligned with dark rounded background, WHITE text
     return (
       <div
         ref={messageRef}
         id={`msg-${message.index}`}
         className={`flex justify-end transition-all duration-500 ${
-          isHighlighted ? 'ring-2 ring-accent ring-offset-4 ring-offset-bg-primary rounded-2xl' : ''
+          isHighlighted ? 'ring-2 ring-accent ring-offset-4 ring-offset-[#2f2f2f] rounded-2xl' : ''
         }`}
       >
         <div className="max-w-[85%] md:max-w-[75%]">
@@ -64,7 +64,7 @@ export default function Message({ message, globalFoldState, isHighlighted }: Mes
             <div className="flex justify-end mb-1">
               <button
                 onClick={() => setIsCollapsed(!isCollapsed)}
-                className="flex items-center gap-1 px-2 py-0.5 text-xs rounded-md text-text-muted hover:text-text-secondary transition-colors"
+                className="flex items-center gap-1 px-2 py-0.5 text-xs rounded-md text-[#999] hover:text-[#ccc] transition-colors"
               >
                 <svg
                   className={`w-3 h-3 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
@@ -74,27 +74,25 @@ export default function Message({ message, globalFoldState, isHighlighted }: Mes
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
-                {isCollapsed ? 'Expand' : 'Fold'}
+                {isCollapsed ? 'Expand' : 'Collapse'}
               </button>
             </div>
           )}
 
-          <div className="bg-[#3d3929] rounded-2xl px-5 py-4">
-            {!isCollapsed && (
-              <div className="text-[#e8e6e3] text-[15px] leading-relaxed">
+          <div className="bg-[#403a2e] rounded-2xl px-5 py-4">
+            {!isCollapsed ? (
+              <div className="text-white text-[15px] leading-relaxed font-normal">
                 {message.content.map((block, index) => (
-                  <ContentBlockRenderer key={index} block={block} />
+                  <UserContentBlock key={index} block={block} />
                 ))}
               </div>
-            )}
-
-            {isCollapsed && (
+            ) : (
               <div
-                className="text-[#a8a49c] italic cursor-pointer hover:text-[#e8e6e3]"
+                className="text-white text-[15px] leading-relaxed cursor-pointer"
                 onClick={() => setIsCollapsed(false)}
               >
                 {previewText}...
-                <span className="ml-2 text-xs text-accent">(expand)</span>
+                <span className="ml-2 text-xs text-[#999]">(click to expand)</span>
               </div>
             )}
           </div>
@@ -103,13 +101,13 @@ export default function Message({ message, globalFoldState, isHighlighted }: Mes
     );
   }
 
-  // Assistant message: left-aligned, no background
+  // Assistant message: left-aligned, no background, same text color
   return (
     <div
       ref={messageRef}
       id={`msg-${message.index}`}
       className={`transition-all duration-500 ${
-        isHighlighted ? 'ring-2 ring-accent ring-offset-4 ring-offset-bg-primary rounded-lg p-2 -m-2' : ''
+        isHighlighted ? 'ring-2 ring-accent ring-offset-4 ring-offset-[#2f2f2f] rounded-lg p-2 -m-2' : ''
       }`}
     >
       {/* Fold button for long messages */}
@@ -117,7 +115,7 @@ export default function Message({ message, globalFoldState, isHighlighted }: Mes
         <div className="flex justify-start mb-2">
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="flex items-center gap-1 px-2 py-0.5 text-xs rounded-md text-text-muted hover:text-text-secondary transition-colors"
+            className="flex items-center gap-1 px-2 py-0.5 text-xs rounded-md text-[#888] hover:text-[#aaa] transition-colors"
           >
             <svg
               className={`w-3 h-3 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
@@ -127,52 +125,77 @@ export default function Message({ message, globalFoldState, isHighlighted }: Mes
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
-            {isCollapsed ? 'Expand' : 'Fold'}
+            {isCollapsed ? 'Expand' : 'Collapse'}
           </button>
         </div>
       )}
 
-      {!isCollapsed && (
-        <div className="text-[#e8e6e3] text-[15px] leading-relaxed">
+      {!isCollapsed ? (
+        <div className="text-[#ececec] text-[15px] leading-relaxed font-normal">
           {message.content.map((block, index) => (
-            <ContentBlockRenderer key={index} block={block} />
+            <AssistantContentBlock key={index} block={block} />
           ))}
         </div>
-      )}
-
-      {isCollapsed && (
+      ) : (
         <div
-          className="text-[#a8a49c] italic cursor-pointer hover:text-[#e8e6e3]"
+          className="text-[#ececec] text-[15px] leading-relaxed cursor-pointer"
           onClick={() => setIsCollapsed(false)}
         >
           {previewText}...
-          <span className="ml-2 text-xs text-accent">(expand)</span>
+          <span className="ml-2 text-xs text-[#888]">(click to expand)</span>
         </div>
       )}
     </div>
   );
 }
 
-function ContentBlockRenderer({ block }: { block: ContentBlock }) {
+// User content - white text, simpler rendering
+function UserContentBlock({ block }: { block: ContentBlock }) {
   if (block.type === 'code') {
     return (
-      <pre className="bg-[#1a1a1a] text-[#e8e6e3] p-4 rounded-xl overflow-x-auto text-sm my-4 border border-[#333]">
+      <pre className="bg-[#2a2520] text-white p-4 rounded-xl overflow-x-auto text-sm my-3 font-mono">
         {block.language && (
-          <div className="text-[#888] text-xs mb-2 font-mono">{block.language}</div>
+          <div className="text-[#999] text-xs mb-2">{block.language}</div>
         )}
-        <code className="font-mono">{block.content}</code>
+        <code>{block.content}</code>
       </pre>
     );
   }
 
-  // Default: text - render as markdown
+  // Simple text rendering for user messages
+  return (
+    <div className="whitespace-pre-wrap">
+      {block.content.split('\n').map((line, i, arr) => (
+        <span key={i}>
+          {line}
+          {i < arr.length - 1 && <br />}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+// Assistant content - with full markdown rendering
+function AssistantContentBlock({ block }: { block: ContentBlock }) {
+  if (block.type === 'code') {
+    return (
+      <pre className="bg-[#1a1a1a] text-[#ececec] p-4 rounded-xl overflow-x-auto text-sm my-4 border border-[#333] font-mono">
+        {block.language && (
+          <div className="text-[#888] text-xs mb-2">{block.language}</div>
+        )}
+        <code>{block.content}</code>
+      </pre>
+    );
+  }
+
+  // Full markdown rendering for assistant messages
   return (
     <div className="prose prose-sm prose-invert max-w-none">
       <Markdown
         components={{
           // Style code blocks within markdown
           pre: ({ children }) => (
-            <pre className="bg-[#1a1a1a] text-[#e8e6e3] p-4 rounded-xl overflow-x-auto text-sm my-4 border border-[#333]">
+            <pre className="bg-[#1a1a1a] text-[#ececec] p-4 rounded-xl overflow-x-auto text-sm my-4 border border-[#333] font-mono">
               {children}
             </pre>
           ),
@@ -180,7 +203,7 @@ function ContentBlockRenderer({ block }: { block: ContentBlock }) {
             const isInline = !className;
             if (isInline) {
               return (
-                <code className="bg-[#2a2a2a] px-1.5 py-0.5 rounded text-sm text-[#e8e6e3] font-mono">
+                <code className="bg-[#3a3a3a] px-1.5 py-0.5 rounded text-sm text-[#ececec] font-mono">
                   {children}
                 </code>
               );
@@ -195,7 +218,7 @@ function ContentBlockRenderer({ block }: { block: ContentBlock }) {
             <ol className="list-decimal pl-6 space-y-2 my-4">{children}</ol>
           ),
           li: ({ children }) => (
-            <li className="text-[#e8e6e3] pl-1">{children}</li>
+            <li className="text-[#ececec] pl-1">{children}</li>
           ),
           // Style paragraphs
           p: ({ children }) => (
@@ -203,17 +226,17 @@ function ContentBlockRenderer({ block }: { block: ContentBlock }) {
           ),
           // Style headings
           h1: ({ children }) => (
-            <h1 className="text-xl font-semibold mt-6 mb-3 text-[#e8e6e3]">{children}</h1>
+            <h1 className="text-xl font-semibold mt-6 mb-3 text-[#ececec]">{children}</h1>
           ),
           h2: ({ children }) => (
-            <h2 className="text-lg font-semibold mt-5 mb-2 text-[#e8e6e3]">{children}</h2>
+            <h2 className="text-lg font-semibold mt-5 mb-2 text-[#ececec]">{children}</h2>
           ),
           h3: ({ children }) => (
-            <h3 className="text-base font-semibold mt-4 mb-2 text-[#e8e6e3]">{children}</h3>
+            <h3 className="text-base font-semibold mt-4 mb-2 text-[#ececec]">{children}</h3>
           ),
           // Style blockquotes
           blockquote: ({ children }) => (
-            <blockquote className="border-l-4 border-[#555] pl-4 my-4 text-[#a8a49c]">
+            <blockquote className="border-l-4 border-[#555] pl-4 my-4 text-[#bbb]">
               {children}
             </blockquote>
           ),
@@ -225,7 +248,7 @@ function ContentBlockRenderer({ block }: { block: ContentBlock }) {
           ),
           // Style strong/bold
           strong: ({ children }) => (
-            <strong className="font-semibold text-[#e8e6e3]">{children}</strong>
+            <strong className="font-semibold text-[#ececec]">{children}</strong>
           ),
           // Style emphasis/italic
           em: ({ children }) => (
