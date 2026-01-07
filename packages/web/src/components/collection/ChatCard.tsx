@@ -83,7 +83,7 @@ export default function ChatCard({ chat, onDelete }: ChatCardProps) {
         {canDelete && onDelete && (
           <button
             onClick={handleDelete}
-            className="p-1.5 bg-bg-tertiary text-text-secondary rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-accent hover:text-white"
+            className="p-1.5 bg-bg-tertiary text-text-secondary rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 hover:text-white"
             title="Delete chat"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -91,7 +91,7 @@ export default function ChatCard({ chat, onDelete }: ChatCardProps) {
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={2}
-                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"
               />
             </svg>
           </button>
