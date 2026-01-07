@@ -5,6 +5,7 @@ import { api, SearchResult } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import ImportModal from '../components/collection/ImportModal';
 import ChatCard from '../components/collection/ChatCard';
+import UserMenu from '../components/layout/UserMenu';
 
 // Debounce hook
 function useDebounce<T>(value: T, delay: number): T {
@@ -29,7 +30,7 @@ export default function Home() {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const queryClient = useQueryClient();
-  const { user, login, logout, isLoading: isAuthLoading } = useAuth();
+  const { user, login, isLoading: isAuthLoading } = useAuth();
 
   const debouncedQuery = useDebounce(searchQuery, 300);
 
@@ -99,19 +100,7 @@ export default function Home() {
               {isAuthLoading ? (
                 <div className="w-8 h-8 rounded-full bg-bg-tertiary animate-pulse" />
               ) : user ? (
-                <div className="flex items-center gap-2">
-                  <img
-                    src={user.picture}
-                    alt={user.name}
-                    className="w-8 h-8 rounded-full"
-                  />
-                  <button
-                    onClick={logout}
-                    className="text-sm text-text-secondary hover:text-text-primary transition-colors"
-                  >
-                    Logout
-                  </button>
-                </div>
+                <UserMenu />
               ) : (
                 <button
                   onClick={login}
@@ -202,8 +191,8 @@ export default function Home() {
                     <div className="flex items-start gap-3">
                       <div
                         className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${result.role === 'user'
-                            ? 'bg-accent text-white'
-                            : 'bg-text-muted text-white'
+                          ? 'bg-accent text-white'
+                          : 'bg-text-muted text-white'
                           }`}
                       >
                         {result.role === 'user' ? 'U' : 'A'}
