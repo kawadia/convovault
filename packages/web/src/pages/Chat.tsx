@@ -179,7 +179,7 @@ export default function Chat() {
   return (
     <div className="min-h-screen bg-bg-primary">
       {/* Minimal sticky header */}
-      <header className="sticky top-0 z-20 bg-bg-primary/95 backdrop-blur-sm border-b border-border">
+      <header className="sticky top-0 z-20 bg-bg-primary/95 backdrop-blur-sm">
         <div className="max-w-3xl mx-auto px-6 py-3">
           {/* Top row: back button, title, search */}
           <div className="flex items-center gap-4">
