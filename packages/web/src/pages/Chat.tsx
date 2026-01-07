@@ -1,8 +1,11 @@
 import { useParams, Link, useLocation } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { api, SearchResult } from '../api/client';
 import ChatViewer from '../components/chat/ChatViewer';
+
+// Threshold for considering a message "long" - must match Message.tsx
+const LONG_MESSAGE_THRESHOLD = 500;
 
 // Debounce hook
 function useDebounce<T>(value: T, delay: number): T {
@@ -32,6 +35,9 @@ export default function Chat() {
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const [isSearching, setIsSearching] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+
+  // Fold state (lifted from ChatViewer)
+  const [globalFoldState, setGlobalFoldState] = useState<'all-folded' | 'all-unfolded' | null>(null);
 
   const debouncedQuery = useDebounce(searchQuery, 300);
 
@@ -132,6 +138,25 @@ export default function Chat() {
     enabled: !!id,
   });
 
+  // Count long messages for fold controls
+  const longMessageCount = useMemo(() => {
+    if (!chat) return 0;
+    return chat.messages.filter(m =>
+      m.content.reduce((sum, block) => sum + block.content.length, 0) > LONG_MESSAGE_THRESHOLD
+    ).length;
+  }, [chat]);
+
+  // Fold handlers
+  const handleCollapseAll = useCallback(() => {
+    setGlobalFoldState(null);
+    setTimeout(() => setGlobalFoldState('all-folded'), 0);
+  }, []);
+
+  const handleExpandAll = useCallback(() => {
+    setGlobalFoldState(null);
+    setTimeout(() => setGlobalFoldState('all-unfolded'), 0);
+  }, []);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-bg-primary flex items-center justify-center">
@@ -155,50 +180,79 @@ export default function Chat() {
     <div className="min-h-screen bg-bg-primary">
       {/* Minimal sticky header */}
       <header className="sticky top-0 z-20 bg-bg-primary/95 backdrop-blur-sm border-b border-border">
-        <div className="max-w-3xl mx-auto px-6 py-3 flex items-center gap-4">
-          <Link
-            to="/"
-            className="p-2 -ml-2 rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
-            title="Back to home"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-          </Link>
+        <div className="max-w-3xl mx-auto px-6 py-3">
+          {/* Top row: back button, title, search */}
+          <div className="flex items-center gap-4">
+            <Link
+              to="/"
+              className="p-2 -ml-2 rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
+              title="Back to home"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+            </Link>
 
-          <div className="flex-1 min-w-0">
-            <h1 className="text-[19px] font-medium text-text-primary truncate">
-              {chat.title}
-            </h1>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-[19px] font-medium text-text-primary truncate">
+                {chat.title}
+              </h1>
+              {/* View on Claude link */}
+              <a
+                href={chat.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-sm text-text-muted hover:text-accent transition-colors"
+              >
+                View on Claude
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+            </div>
+
+            {/* Search toggle */}
+            <button
+              onClick={() => setShowSearch(prev => !prev)}
+              className={`p-2 rounded-lg transition-colors ${
+                showSearch
+                  ? 'bg-accent text-white'
+                  : 'text-text-muted hover:text-text-primary hover:bg-bg-hover'
+              }`}
+              title="Search (⌘F)"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </button>
           </div>
 
-          {/* Search toggle */}
-          <button
-            onClick={() => setShowSearch(prev => !prev)}
-            className={`p-2 rounded-lg transition-colors ${
-              showSearch
-                ? 'bg-accent text-white'
-                : 'text-text-muted hover:text-text-primary hover:bg-bg-hover'
-            }`}
-            title="Search (⌘F)"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </button>
-
-          {/* External link */}
-          <a
-            href={chat.sourceUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="p-2 rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
-            title="View on Claude"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-            </svg>
-          </a>
+          {/* Second row: message count and fold controls */}
+          {longMessageCount > 0 && (
+            <div className="flex items-center gap-3 mt-3 pt-3 border-t border-border">
+              <span className="text-sm text-text-muted mr-auto">
+                {longMessageCount} long {longMessageCount === 1 ? 'message' : 'messages'}
+              </span>
+              <button
+                onClick={handleCollapseAll}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg text-text-muted hover:text-text-secondary hover:bg-bg-hover transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
+                </svg>
+                Collapse All
+              </button>
+              <button
+                onClick={handleExpandAll}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg text-text-muted hover:text-text-secondary hover:bg-bg-hover transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+                Expand All
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Search bar */}
@@ -303,6 +357,7 @@ export default function Chat() {
         <ChatViewer
           messages={chat.messages}
           highlightedMessageIndex={highlightedMessageIndex}
+          globalFoldState={globalFoldState}
         />
       </main>
     </div>
