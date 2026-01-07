@@ -200,16 +200,28 @@ describe('ChatCard', () => {
   });
 
   describe('favorite functionality', () => {
-    it('does not show heart icon when not logged in', () => {
+    it('shows heart icon even when not logged in', () => {
       mockAuthNotLoggedIn();
       renderWithRouter(<ChatCard chat={mockChat} />);
-      expect(screen.queryByTitle(/favorites/i)).not.toBeInTheDocument();
+      expect(screen.getByTitle(/favorites/i)).toBeInTheDocument();
     });
 
     it('shows heart icon when logged in', () => {
       mockAuthAsOwner();
       renderWithRouter(<ChatCard chat={mockChat} />);
       expect(screen.getByTitle(/favorites/i)).toBeInTheDocument();
+    });
+
+    it('calls onLoginRequired when heart clicked while not logged in', async () => {
+      mockAuthNotLoggedIn();
+      const onLoginRequired = vi.fn();
+      renderWithRouter(<ChatCard chat={mockChat} onLoginRequired={onLoginRequired} />);
+
+      const heartBtn = screen.getByTitle(/favorites/i);
+      await fireEvent.click(heartBtn);
+
+      expect(onLoginRequired).toHaveBeenCalled();
+      expect(mockApi.toggleFavorite).not.toHaveBeenCalled();
     });
 
     it('renders filled heart when isFavorite is true', () => {
@@ -267,16 +279,27 @@ describe('ChatCard', () => {
   });
 
   describe('bookmark functionality', () => {
-    it('does not show bookmark icon when not logged in', () => {
+    it('shows bookmark icon even when not logged in', () => {
       mockAuthNotLoggedIn();
       renderWithRouter(<ChatCard chat={mockChat} />);
-      expect(screen.queryByTitle(/bookmark/i)).not.toBeInTheDocument();
+      expect(screen.getByTitle(/bookmark/i)).toBeInTheDocument();
     });
 
     it('shows bookmark icon when logged in', () => {
       mockAuthAsOwner();
       renderWithRouter(<ChatCard chat={mockChat} />);
       expect(screen.getByTitle(/bookmark/i)).toBeInTheDocument();
+    });
+
+    it('calls onLoginRequired when bookmark clicked while not logged in', async () => {
+      mockAuthNotLoggedIn();
+      const onLoginRequired = vi.fn();
+      renderWithRouter(<ChatCard chat={mockChat} onLoginRequired={onLoginRequired} />);
+
+      const bookmarkBtn = screen.getByTitle(/bookmark/i);
+      await fireEvent.click(bookmarkBtn);
+
+      expect(onLoginRequired).toHaveBeenCalled();
     });
 
     it('calls onToggleBookmark when clicked', async () => {

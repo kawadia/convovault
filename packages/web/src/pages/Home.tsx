@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import ImportModal from '../components/collection/ImportModal';
 import ChatCard from '../components/collection/ChatCard';
 import UserMenu from '../components/layout/UserMenu';
+import LoginPrompt from '../components/auth/LoginPrompt';
 
 // Debounce hook
 function useDebounce<T>(value: T, delay: number): T {
@@ -29,6 +30,7 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [loginPrompt, setLoginPrompt] = useState<{ title: string; message: string } | null>(null);
   const queryClient = useQueryClient();
   const { user, login, isLoading: isAuthLoading } = useAuth();
 
@@ -132,8 +134,17 @@ export default function Home() {
             </div>
             <div className="flex items-center gap-3">
               <button
-                onClick={() => user ? setShowImport(true) : login()}
-                className="px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-hover transition-colors font-medium"
+                onClick={() => {
+                  if (user) {
+                    setShowImport(true);
+                  } else {
+                    setLoginPrompt({
+                      title: 'Import your dialogues',
+                      message: 'Sign in to import and preserve your Socratic conversations from Claude.'
+                    });
+                  }
+                }}
+                className="px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-hover transition-colors font-medium border border-transparent"
                 disabled={isAuthLoading}
               >
                 Import Chat
@@ -338,6 +349,7 @@ export default function Home() {
                     onDelete={handleDelete}
                     isBookmarked={chat.isBookmarked}
                     onToggleBookmark={(id) => toggleBookmark(id, !!chat.isBookmarked)}
+                    onLoginRequired={(title, message) => setLoginPrompt({ title, message })}
                   />
                 ))}
               </div>
@@ -347,6 +359,13 @@ export default function Home() {
       </main>
 
       {showImport && <ImportModal onClose={() => setShowImport(false)} />}
+      {loginPrompt && (
+        <LoginPrompt
+          title={loginPrompt.title}
+          message={loginPrompt.message}
+          onClose={() => setLoginPrompt(null)}
+        />
+      )}
     </div>
   );
 }

@@ -9,9 +9,10 @@ interface ChatCardProps {
   onDelete?: (id: string) => void;
   isBookmarked?: boolean;
   onToggleBookmark?: (id: string) => void;
+  onLoginRequired?: (title: string, message: string) => void;
 }
 
-export default function ChatCard({ chat, onDelete, isBookmarked, onToggleBookmark }: ChatCardProps) {
+export default function ChatCard({ chat, onDelete, isBookmarked, onToggleBookmark, onLoginRequired }: ChatCardProps) {
   const { user, isAdmin } = useAuth();
 
   const formattedDate = new Date(chat.fetchedAt).toLocaleDateString('en-US', {
@@ -33,7 +34,10 @@ export default function ChatCard({ chat, onDelete, isBookmarked, onToggleBookmar
   const handleToggleFavorite = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!user) return;
+    if (!user) {
+      onLoginRequired?.('Save to favorites', 'Sign in to keep track of your favorite dialogues.');
+      return;
+    }
 
     const nextState = !isFavorite;
     setIsFavorite(nextState); // Optimistic update
@@ -63,55 +67,59 @@ export default function ChatCard({ chat, onDelete, isBookmarked, onToggleBookmar
   return (
     <div className="relative group">
       <div className="absolute bottom-2 right-2 z-10 flex items-center gap-1">
-        {user && (
-          <button
-            onClick={handleToggleFavorite}
-            className={`p-1.5 transition-all ${isFavorite
-              ? 'text-accent opacity-100'
-              : 'text-text-secondary opacity-0 group-hover:opacity-100'
-              } hover:scale-110 active:scale-95`}
-            title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+        <button
+          onClick={handleToggleFavorite}
+          className={`p-1.5 transition-all ${isFavorite
+            ? 'text-accent opacity-100'
+            : 'text-text-secondary opacity-0 group-hover:opacity-100'
+            } hover:scale-110 active:scale-95`}
+          title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+        >
+          <svg
+            className="w-5 h-5 transition-colors"
+            fill={isFavorite ? 'currentColor' : 'none'}
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            strokeWidth={2}
           >
-            <svg
-              className="w-5 h-5 transition-colors"
-              fill={isFavorite ? 'currentColor' : 'none'}
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-              />
-            </svg>
-          </button>
-        )}
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+            />
+          </svg>
+        </button>
 
-        {user && (
-          <button
-            onClick={handleToggleBookmark}
-            className={`p-1.5 transition-all ${isBookmarked
-              ? 'text-accent opacity-100'
-              : 'text-text-secondary opacity-0 group-hover:opacity-100'
-              } hover:scale-110 active:scale-95`}
-            title={isBookmarked ? 'Remove bookmark' : 'Bookmark chat'}
+        <button
+          onClick={(e) => {
+            if (!user) {
+              e.preventDefault();
+              e.stopPropagation();
+              onLoginRequired?.('Bookmark for later', 'Sign in to bookmark this conversation for your next reading session.');
+            } else {
+              handleToggleBookmark(e);
+            }
+          }}
+          className={`p-1.5 transition-all ${isBookmarked
+            ? 'text-accent opacity-100'
+            : 'text-text-secondary opacity-0 group-hover:opacity-100'
+            } hover:scale-110 active:scale-95`}
+          title={isBookmarked ? 'Remove bookmark' : 'Bookmark chat'}
+        >
+          <svg
+            className="w-5 h-5 transition-colors"
+            fill={isBookmarked ? 'currentColor' : 'none'}
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            strokeWidth={2}
           >
-            <svg
-              className="w-5 h-5 transition-colors"
-              fill={isBookmarked ? 'currentColor' : 'none'}
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z"
-              />
-            </svg>
-          </button>
-        )}
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z"
+            />
+          </svg>
+        </button>
 
         {canDelete && onDelete && (
           <button
@@ -168,6 +176,6 @@ export default function ChatCard({ chat, onDelete, isBookmarked, onToggleBookmar
           Imported {formattedDate}
         </div>
       </Link>
-    </div>
+    </div >
   );
 }
