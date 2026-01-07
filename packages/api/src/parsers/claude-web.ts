@@ -194,7 +194,8 @@ function extractMessagesWithClasses(html: string): Message[] {
   // The HTML can have attributes in either order:
   //   <div data-is-streaming="false" class="group relative pb-8">
   //   <div class="group relative pb-3" data-is-streaming="false">
-  const assistantMsgRegex = /<div[^>]*data-is-streaming="false"[^>]*class="group relative pb-\d+"[^>]*>([\s\S]*?)(?=<div[^>]*data-is-streaming|<div[^>]*class="[^"]*font-user-message|$)/gi;
+  // Note: "relative" may appear twice in the class (e.g., "group relative relative pb-8")
+  const assistantMsgRegex = /<div[^>]*data-is-streaming="false"[^>]*class="group relative\s+(?:relative\s+)?pb-\d+"[^>]*>([\s\S]*?)(?=<div[^>]*data-is-streaming|<div[^>]*class="[^"]*font-user-message|$)/gi;
   const assistantMessages: Array<{ content: string; position: number }> = [];
 
   while ((match = assistantMsgRegex.exec(html)) !== null) {
@@ -209,7 +210,7 @@ function extractMessagesWithClasses(html: string): Message[] {
   }
 
   // Also try the reverse attribute order (class before data-is-streaming)
-  const assistantMsgRegex2 = /<div[^>]*class="group relative pb-\d+"[^>]*data-is-streaming="false"[^>]*>([\s\S]*?)(?=<div[^>]*data-is-streaming|<div[^>]*class="[^"]*font-user-message|$)/gi;
+  const assistantMsgRegex2 = /<div[^>]*class="group relative\s+(?:relative\s+)?pb-\d+"[^>]*data-is-streaming="false"[^>]*>([\s\S]*?)(?=<div[^>]*data-is-streaming|<div[^>]*class="[^"]*font-user-message|$)/gi;
 
   while ((match = assistantMsgRegex2.exec(html)) !== null) {
     const blockHtml = match[1] || '';
