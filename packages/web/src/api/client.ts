@@ -55,6 +55,7 @@ export interface ChatSummary {
   userId?: string; // Owner of the chat (who imported it)
   isFavorite?: boolean;
   isBookmarked?: boolean;
+  favoriteCount?: number;
 }
 
 export interface ChatDetail extends ChatSummary {
@@ -73,6 +74,11 @@ export const api = {
   // List all chats
   async listChats(): Promise<{ chats: ChatSummary[] }> {
     return fetchApi<{ chats: ChatSummary[] }>('/chats');
+  },
+
+  // Get global favorite counts
+  async getSocialCounts(): Promise<{ counts: Record<string, number> }> {
+    return fetchApi<{ counts: Record<string, number> }>('/chats/social-counts');
   },
 
   // Import a chat (requires login)

@@ -47,7 +47,25 @@ export default function Home() {
   const bookmarkMutation = useMutation({
     mutationFn: ({ id, bookmark }: { id: string; bookmark: boolean }) =>
       api.toggleBookmark(id, bookmark),
-    onSuccess: () => {
+    onMutate: async ({ id, bookmark }) => {
+      await queryClient.cancelQueries({ queryKey: ['chats'] });
+      const previousChats = queryClient.getQueryData<{ chats: any[] }>(['chats']);
+
+      queryClient.setQueryData(['chats'], (old: any) => ({
+        ...old,
+        chats: old.chats.map((c: any) =>
+          c.id === id ? { ...c, isBookmarked: bookmark } : c
+        )
+      }));
+
+      return { previousChats };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousChats) {
+        queryClient.setQueryData(['chats'], context.previousChats);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['chats'] });
     },
   });
@@ -57,12 +75,62 @@ export default function Home() {
     bookmarkMutation.mutate({ id, bookmark: !current });
   };
 
+  const favoriteMutation = useMutation({
+    mutationFn: ({ id, favorite }: { id: string; favorite: boolean }) =>
+      api.toggleFavorite(id, favorite),
+    onMutate: async ({ id, favorite }) => {
+      // Update chats list
+      await queryClient.cancelQueries({ queryKey: ['chats'] });
+      const previousChats = queryClient.getQueryData<{ chats: any[] }>(['chats']);
+      queryClient.setQueryData(['chats'], (old: any) => ({
+        ...old,
+        chats: old.chats.map((c: any) =>
+          c.id === id ? { ...c, isFavorite: favorite } : c
+        )
+      }));
+
+      // Update social counts
+      await queryClient.cancelQueries({ queryKey: ['social-counts'] });
+      const previousSocial = queryClient.getQueryData<{ counts: Record<string, number> }>(['social-counts']);
+      queryClient.setQueryData(['social-counts'], (old: any) => ({
+        ...old,
+        counts: {
+          ...old.counts,
+          [id]: (old.counts[id] || 0) + (favorite ? 1 : -1)
+        }
+      }));
+
+      return { previousChats, previousSocial };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousChats) queryClient.setQueryData(['chats'], context.previousChats);
+      if (context?.previousSocial) queryClient.setQueryData(['social-counts'], context.previousSocial);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['chats'] });
+      queryClient.invalidateQueries({ queryKey: ['social-counts'] });
+    },
+  });
+
+  const toggleFavorite = (id: string, current: boolean) => {
+    if (!user) return;
+    favoriteMutation.mutate({ id, favorite: !current });
+  };
+
   const debouncedQuery = useDebounce(searchQuery, 300);
 
   const { data, isLoading } = useQuery({
     queryKey: ['chats'],
     queryFn: () => api.listChats(),
   });
+
+  const { data: socialData } = useQuery({
+    queryKey: ['social-counts'],
+    queryFn: () => api.getSocialCounts(),
+    refetchInterval: 30000, // Refresh every 30s
+  });
+
+  const socialCounts = socialData?.counts || {};
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.deleteChat(id),
@@ -349,7 +417,10 @@ export default function Home() {
                     onDelete={handleDelete}
                     isBookmarked={chat.isBookmarked}
                     onToggleBookmark={(id) => toggleBookmark(id, !!chat.isBookmarked)}
+                    isFavorite={chat.isFavorite}
+                    onToggleFavorite={(id) => toggleFavorite(id, !!chat.isFavorite)}
                     onLoginRequired={(title, message) => setLoginPrompt({ title, message })}
+                    favoriteCount={socialCounts[chat.id]}
                   />
                 ))}
               </div>

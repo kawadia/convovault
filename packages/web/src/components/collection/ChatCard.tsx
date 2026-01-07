@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { api } from '../../api/client';
 import { Link } from 'react-router';
 import type { ChatSummary } from '../../api/client';
@@ -9,11 +9,24 @@ interface ChatCardProps {
   onDelete?: (id: string) => void;
   isBookmarked?: boolean;
   onToggleBookmark?: (id: string) => void;
+  isFavorite?: boolean;
+  onToggleFavorite?: (id: string) => void;
   onLoginRequired?: (title: string, message: string) => void;
+  favoriteCount?: number;
 }
 
-export default function ChatCard({ chat, onDelete, isBookmarked, onToggleBookmark, onLoginRequired }: ChatCardProps) {
+export default function ChatCard({
+  chat,
+  onDelete,
+  isBookmarked,
+  onToggleBookmark,
+  isFavorite,
+  onToggleFavorite,
+  onLoginRequired,
+  favoriteCount: propFavoriteCount
+}: ChatCardProps) {
   const { user, isAdmin } = useAuth();
+  const [favoriteCount, setFavoriteCount] = useState(propFavoriteCount || 0);
 
   const formattedDate = new Date(chat.fetchedAt).toLocaleDateString('en-US', {
     month: 'short',
@@ -21,7 +34,12 @@ export default function ChatCard({ chat, onDelete, isBookmarked, onToggleBookmar
     year: 'numeric',
   });
 
-  const [isFavorite, setIsFavorite] = useState(chat.isFavorite);
+  // Sync with prop when it arrives asynchronously
+  useEffect(() => {
+    if (propFavoriteCount !== undefined) {
+      setFavoriteCount(propFavoriteCount);
+    }
+  }, [propFavoriteCount]);
 
   const handleDelete = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -31,23 +49,14 @@ export default function ChatCard({ chat, onDelete, isBookmarked, onToggleBookmar
     }
   };
 
-  const handleToggleFavorite = async (e: React.MouseEvent) => {
+  const handleToggleFavorite = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (!user) {
       onLoginRequired?.('Save to favorites', 'Sign in to keep track of your favorite dialogues.');
       return;
     }
-
-    const nextState = !isFavorite;
-    setIsFavorite(nextState); // Optimistic update
-
-    try {
-      await api.toggleFavorite(chat.id, nextState);
-    } catch (error) {
-      console.error('Failed to toggle favorite:', error);
-      setIsFavorite(!nextState); // Rollback
-    }
+    onToggleFavorite?.(chat.id);
   };
 
   const handleToggleBookmark = (e: React.MouseEvent) => {
@@ -67,28 +76,38 @@ export default function ChatCard({ chat, onDelete, isBookmarked, onToggleBookmar
   return (
     <div className="relative group">
       <div className="absolute bottom-2 right-2 z-10 flex items-center gap-1">
-        <button
-          onClick={handleToggleFavorite}
-          className={`p-1.5 transition-all ${isFavorite
-            ? 'text-hot-pink opacity-100'
-            : 'text-text-secondary opacity-0 group-hover:opacity-100'
-            } hover:scale-110 active:scale-95`}
-          title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-        >
-          <svg
-            className="w-5 h-5 transition-colors"
-            fill={isFavorite ? 'currentColor' : 'none'}
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            strokeWidth={2}
+        <div className="flex items-center gap-0.5 group/heart">
+          <button
+            onClick={handleToggleFavorite}
+            className={`p-1.5 transition-all ${isFavorite
+              ? 'text-hot-pink opacity-100'
+              : 'text-text-secondary opacity-0 group-hover:opacity-100'
+              } hover:scale-110 active:scale-95`}
+            title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-            />
-          </svg>
-        </button>
+            <svg
+              className="w-5 h-5 transition-colors"
+              fill={isFavorite ? 'currentColor' : 'none'}
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+              />
+            </svg>
+          </button>
+          {favoriteCount > 0 && (
+            <span className={`text-[11px] font-medium transition-all ${isFavorite
+              ? 'text-hot-pink opacity-100'
+              : 'text-text-secondary opacity-0 group-hover:opacity-100'
+              } select-none -ml-1 pr-1`}>
+              {favoriteCount}
+            </span>
+          )}
+        </div>
 
         <button
           onClick={(e) => {
@@ -148,27 +167,27 @@ export default function ChatCard({ chat, onDelete, isBookmarked, onToggleBookmar
         </h3>
 
         {participantsDisplay && (
-          <div className="text-sm text-text-secondary mb-2 flex items-center gap-1">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="text-sm text-text-secondary mb-2 flex items-center gap-1.5 leading-none">
+            <svg className="w-4 h-4 -translate-y-[0.5px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
-            {participantsDisplay}
+            <span className="translate-y-[0.5px]">{participantsDisplay}</span>
           </div>
         )}
 
-        <div className="flex items-center gap-4 text-sm text-text-secondary">
-          <span className="flex items-center gap-1">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="flex items-center gap-4 text-sm text-text-secondary leading-none">
+          <span className="flex items-center gap-1.5">
+            <svg className="w-4 h-4 -translate-y-[0.5px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
             </svg>
-            {chat.messageCount} messages
+            <span className="translate-y-[0.5px]">{chat.messageCount} messages</span>
           </span>
 
-          <span className="flex items-center gap-1">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <span className="flex items-center gap-1.5">
+            <svg className="w-4 h-4 -translate-y-[0.5px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            {chat.wordCount.toLocaleString()} words
+            <span className="translate-y-[0.5px]">{chat.wordCount.toLocaleString()} words</span>
           </span>
         </div>
 
