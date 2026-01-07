@@ -38,38 +38,36 @@ export default function ChatViewer({ messages, participants, highlightedMessageI
   };
 
   return (
-    <div className="space-y-4">
-      {/* Toolbar with fold controls */}
+    <div>
+      {/* Toolbar with fold controls - only show if there are long messages */}
       {longMessageCount > 0 && (
-        <div className="sticky top-0 z-10 bg-bg-primary py-2 px-1 -mx-1 flex items-center justify-between border-b border-border">
-          <span className="text-sm text-text-secondary">
-            {messages.length} messages ({longMessageCount} long)
+        <div className="flex items-center justify-end gap-3 mb-8 pb-4 border-b border-[#333]">
+          <span className="text-sm text-text-muted mr-auto">
+            {longMessageCount} long {longMessageCount === 1 ? 'message' : 'messages'}
           </span>
-          <div className="flex gap-2">
-            <button
-              onClick={handleFoldAll}
-              className="flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg bg-bg-secondary border border-border text-text-secondary hover:bg-bg-tertiary transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
-              </svg>
-              Fold All
-            </button>
-            <button
-              onClick={handleUnfoldAll}
-              className="flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg bg-bg-secondary border border-border text-text-secondary hover:bg-bg-tertiary transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-              Unfold All
-            </button>
-          </div>
+          <button
+            onClick={handleFoldAll}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg text-text-muted hover:text-text-secondary hover:bg-[#2a2a2a] transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
+            </svg>
+            Fold All
+          </button>
+          <button
+            onClick={handleUnfoldAll}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg text-text-muted hover:text-text-secondary hover:bg-[#2a2a2a] transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+            Unfold All
+          </button>
         </div>
       )}
 
-      {/* Messages */}
-      <div className="space-y-6">
+      {/* Messages with more vertical spacing */}
+      <div className="space-y-8">
         {messages.map((message) => (
           <Message
             key={message.id}

@@ -134,16 +134,16 @@ export default function Chat() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-bg-primary flex items-center justify-center">
-        <div className="text-text-secondary">Loading...</div>
+      <div className="min-h-screen bg-[#212121] flex items-center justify-center">
+        <div className="text-[#888]">Loading...</div>
       </div>
     );
   }
 
   if (error || !chat) {
     return (
-      <div className="min-h-screen bg-bg-primary flex flex-col items-center justify-center gap-4">
-        <div className="text-red-500">Chat not found</div>
+      <div className="min-h-screen bg-[#212121] flex flex-col items-center justify-center gap-4">
+        <div className="text-red-400">Chat not found</div>
         <Link to="/" className="text-accent hover:underline">
           Back to home
         </Link>
@@ -152,56 +152,62 @@ export default function Chat() {
   }
 
   return (
-    <div className="min-h-screen bg-bg-primary">
-      <header className="bg-bg-secondary border-b border-border sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex items-center gap-4">
-          <Link to="/" className="text-text-secondary hover:text-text-primary">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div className="min-h-screen bg-[#212121]">
+      {/* Minimal sticky header */}
+      <header className="sticky top-0 z-20 bg-[#212121]/95 backdrop-blur-sm border-b border-[#333]">
+        <div className="max-w-3xl mx-auto px-6 py-3 flex items-center gap-4">
+          <Link
+            to="/"
+            className="p-2 -ml-2 rounded-lg text-[#888] hover:text-[#e8e6e3] hover:bg-[#2a2a2a] transition-colors"
+            title="Back to home"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
           </Link>
+
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-semibold text-text-primary truncate">
+            <h1 className="text-[15px] font-medium text-[#e8e6e3] truncate">
               {chat.title}
             </h1>
-            <a
-              href={chat.sourceUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-accent hover:underline flex items-center gap-1"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
-              View on Claude
-            </a>
-            <p className="text-sm text-text-secondary">
-              {chat.messageCount} messages &middot; {chat.wordCount.toLocaleString()} words
-            </p>
           </div>
-          {/* Search button */}
+
+          {/* Search toggle */}
           <button
             onClick={() => setShowSearch(prev => !prev)}
-            className={`p-3 rounded-xl transition-all ${
+            className={`p-2 rounded-lg transition-colors ${
               showSearch
-                ? 'bg-accent text-white shadow-lg'
-                : 'bg-bg-tertiary text-text-secondary hover:bg-bg-hover hover:text-accent'
+                ? 'bg-accent text-white'
+                : 'text-[#888] hover:text-[#e8e6e3] hover:bg-[#2a2a2a]'
             }`}
-            title="Search in chat (Cmd/Ctrl+F)"
+            title="Search (⌘F)"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </button>
+
+          {/* External link */}
+          <a
+            href={chat.sourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-2 rounded-lg text-[#888] hover:text-[#e8e6e3] hover:bg-[#2a2a2a] transition-colors"
+            title="View on Claude"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+          </a>
         </div>
 
         {/* Search bar */}
         {showSearch && (
-          <div className="border-t border-border px-4 py-3 sm:px-6 lg:px-8">
-            <div className="max-w-7xl mx-auto flex items-center gap-3">
+          <div className="border-t border-[#333] px-6 py-3">
+            <div className="max-w-3xl mx-auto flex items-center gap-3">
               <div className="relative flex-1">
                 <svg
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#666]"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -213,14 +219,15 @@ export default function Chat() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search in this chat..."
-                  className="w-full pl-9 pr-4 py-2 text-sm border border-border rounded-lg bg-bg-tertiary text-text-primary placeholder:text-text-muted focus:ring-2 focus:ring-accent focus:border-transparent"
+                  className="w-full pl-9 pr-4 py-2 text-sm rounded-lg bg-[#2a2a2a] border border-[#333] text-[#e8e6e3] placeholder:text-[#666] focus:ring-1 focus:ring-accent focus:border-accent outline-none"
                   autoFocus
                 />
               </div>
+
               {/* Match count and navigation */}
               {searchQuery.length >= 2 && (
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-text-secondary whitespace-nowrap">
+                  <span className="text-sm text-[#888] whitespace-nowrap">
                     {isSearching ? (
                       'Searching...'
                     ) : searchResults.length === 0 ? (
@@ -234,8 +241,8 @@ export default function Chat() {
                       <button
                         onClick={goToPrevMatch}
                         disabled={currentMatchIndex === 0}
-                        className="p-1.5 rounded hover:bg-bg-tertiary disabled:opacity-40 disabled:cursor-not-allowed text-text-secondary"
-                        title="Previous match (Shift+Enter)"
+                        className="p-1.5 rounded hover:bg-[#333] disabled:opacity-40 disabled:cursor-not-allowed text-[#888]"
+                        title="Previous (Shift+Enter)"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
@@ -244,8 +251,8 @@ export default function Chat() {
                       <button
                         onClick={goToNextMatch}
                         disabled={currentMatchIndex === searchResults.length - 1}
-                        className="p-1.5 rounded hover:bg-bg-tertiary disabled:opacity-40 disabled:cursor-not-allowed text-text-secondary"
-                        title="Next match (Enter)"
+                        className="p-1.5 rounded hover:bg-[#333] disabled:opacity-40 disabled:cursor-not-allowed text-[#888]"
+                        title="Next (Enter)"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -255,6 +262,7 @@ export default function Chat() {
                   )}
                 </div>
               )}
+
               {/* Close button */}
               <button
                 onClick={() => {
@@ -263,7 +271,7 @@ export default function Chat() {
                   setSearchResults([]);
                   setHighlightedMessageIndex(null);
                 }}
-                className="p-1.5 rounded hover:bg-bg-tertiary text-text-muted"
+                className="p-1.5 rounded hover:bg-[#333] text-[#666]"
                 title="Close (Escape)"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -275,7 +283,23 @@ export default function Chat() {
         )}
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-8">
+      {/* Disclaimer banner like Claude */}
+      <div className="bg-[#2a2a2a] border-b border-[#333]">
+        <div className="max-w-3xl mx-auto px-6 py-3">
+          <div className="flex items-start gap-3 text-sm text-[#888]">
+            <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="leading-relaxed">
+              This is a copy of a chat{chat.participants ? ` between ${chat.participants.assistant} and ${chat.participants.user}` : ''}.
+              {' '}Content may include unverified or unsafe content that do not represent the views of Anthropic.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Chat content */}
+      <main className="max-w-3xl mx-auto px-6 py-12">
         <ChatViewer
           messages={chat.messages}
           participants={chat.participants}
