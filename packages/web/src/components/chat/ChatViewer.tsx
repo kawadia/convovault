@@ -17,8 +17,10 @@ function getMessageLength(message: MessageType): number {
 export default function ChatViewer({ messages, highlightedMessageIndex }: ChatViewerProps) {
   const [globalFoldState, setGlobalFoldState] = useState<'all-folded' | 'all-unfolded' | null>(null);
 
-  // Disable auto-collapse when a message is highlighted (during search)
-  const autoCollapseEnabled = highlightedMessageIndex === null;
+  // Disable auto-collapse when:
+  // - A message is highlighted (during search)
+  // - User clicked "Expand All" (don't re-collapse what they just expanded)
+  const autoCollapseEnabled = highlightedMessageIndex === null && globalFoldState !== 'all-unfolded';
 
   // Count how many messages are "long"
   const longMessageCount = messages.filter(m => getMessageLength(m) > LONG_MESSAGE_THRESHOLD).length;
