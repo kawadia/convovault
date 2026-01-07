@@ -43,9 +43,7 @@ export function analyzeMessage(message: Message): MessageAnalytics {
   };
 }
 
-export function getMetadataPillText(analytics: MessageAnalytics, isCollapsed: boolean): string {
-  if (!isCollapsed) return 'Collapse';
-
+export function getMetadataPillText(analytics: MessageAnalytics): string {
   const parts: string[] = [];
 
   // Prioritize code blocks if present

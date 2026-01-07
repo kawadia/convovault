@@ -1,22 +1,25 @@
-const PREVIEW_WORD_LIMIT = 250;
+const PREVIEW_CHAR_LIMIT = 300;
 
 /**
  * Extract preview text for collapsed messages.
- * Returns the first 250 words of content.
- * Breaks at word boundary to avoid cutting mid-word.
+ * Returns the first 300 characters, breaking at word boundary.
  */
 export function getPreviewText(content: string): string {
   if (!content) return '';
 
-  // Split into words
-  const words = content.split(/\s+/).filter(Boolean);
-
   // If content is shorter than limit, return all
-  if (words.length <= PREVIEW_WORD_LIMIT) {
+  if (content.length <= PREVIEW_CHAR_LIMIT) {
     return content;
   }
 
-  // Take first 250 words and join them back
-  const previewWords = words.slice(0, PREVIEW_WORD_LIMIT);
-  return previewWords.join(' ');
+  // Find last space before limit to break at word boundary
+  const lastSpace = content.lastIndexOf(' ', PREVIEW_CHAR_LIMIT);
+
+  // If we found a reasonable break point, use it
+  if (lastSpace > 100) {
+    return content.substring(0, lastSpace);
+  }
+
+  // Fallback: just use the limit
+  return content.substring(0, PREVIEW_CHAR_LIMIT);
 }

@@ -24,12 +24,12 @@ export default function ChatViewer({ messages, highlightedMessageIndex }: ChatVi
   const longMessageCount = messages.filter(m => getMessageLength(m) > LONG_MESSAGE_THRESHOLD).length;
 
   // Reset globalFoldState after triggering to allow repeated clicks
-  const handleFoldAll = useCallback(() => {
+  const handleCollapseAll = useCallback(() => {
     setGlobalFoldState(null); // Reset first to ensure change is detected
     setTimeout(() => setGlobalFoldState('all-folded'), 0);
   }, []);
 
-  const handleUnfoldAll = useCallback(() => {
+  const handleExpandAll = useCallback(() => {
     setGlobalFoldState(null); // Reset first to ensure change is detected
     setTimeout(() => setGlobalFoldState('all-unfolded'), 0);
   }, []);
@@ -51,22 +51,22 @@ export default function ChatViewer({ messages, highlightedMessageIndex }: ChatVi
             {longMessageCount} long {longMessageCount === 1 ? 'message' : 'messages'}
           </span>
           <button
-            onClick={handleFoldAll}
+            onClick={handleCollapseAll}
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg text-text-muted hover:text-text-secondary hover:bg-bg-hover transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
             </svg>
-            Fold All
+            Collapse All
           </button>
           <button
-            onClick={handleUnfoldAll}
+            onClick={handleExpandAll}
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg text-text-muted hover:text-text-secondary hover:bg-bg-hover transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
-            Unfold All
+            Expand All
           </button>
         </div>
       )}

@@ -41,7 +41,7 @@ export default function Message({
 
   // Compute analytics once (memoized)
   const analytics = useMemo(() => analyzeMessage(message), [message]);
-  const pillText = getMetadataPillText(analytics, isCollapsed);
+  const pillText = getMetadataPillText(analytics);
 
   // Preview text for collapsed state
   const previewText = useMemo(
@@ -121,24 +121,14 @@ export default function Message({
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.15 }}
+                  className={isLong ? 'cursor-pointer' : ''}
+                  onClick={isLong ? () => setIsCollapsed(true) : undefined}
                 >
                   <div className="text-text-primary text-[15px] leading-relaxed font-normal">
                     {message.content.map((block, index) => (
                       <UserContentBlock key={index} block={block} />
                     ))}
                   </div>
-
-                  {/* Collapse pill at bottom for long messages */}
-                  {isLong && (
-                    <button
-                      onClick={() => setIsCollapsed(true)}
-                      className="mt-4 mx-auto block px-3 py-1.5 text-xs rounded-full
-                                 bg-bg-secondary/80 text-text-secondary hover:text-text-primary
-                                 hover:bg-bg-secondary transition-colors"
-                    >
-                      {pillText}
-                    </button>
-                  )}
                 </motion.div>
               ) : (
                 <motion.div
@@ -197,24 +187,14 @@ export default function Message({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
+              className={isLong ? 'cursor-pointer' : ''}
+              onClick={isLong ? () => setIsCollapsed(true) : undefined}
             >
               <div className="text-text-primary text-[15px] leading-relaxed font-normal">
                 {message.content.map((block, index) => (
                   <AssistantContentBlock key={index} block={block} />
                 ))}
               </div>
-
-              {/* Collapse pill at bottom for long messages */}
-              {isLong && (
-                <button
-                  onClick={() => setIsCollapsed(true)}
-                  className="mt-4 mx-auto block px-3 py-1.5 text-xs rounded-full
-                             bg-bg-secondary text-text-muted hover:text-text-secondary
-                             hover:bg-bg-tertiary transition-colors border border-border"
-                >
-                  {pillText}
-                </button>
-              )}
             </motion.div>
           ) : (
             <motion.div
