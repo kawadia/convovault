@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { api } from '../../api/client';
 import { Link } from 'react-router';
 import type { ChatSummary } from '../../api/client';
 import { useAuth } from '../../contexts/AuthContext';

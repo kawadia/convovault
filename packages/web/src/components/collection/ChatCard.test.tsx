@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { BrowserRouter } from 'react-router';
 import ChatCard from './ChatCard';
 import type { ChatSummary } from '../../api/client';
@@ -10,18 +10,9 @@ vi.mock('../../contexts/AuthContext', () => ({
   useAuth: vi.fn(),
 }));
 
-// Mock the api client
-vi.mock('../../api/client', () => ({
-  api: {
-    toggleFavorite: vi.fn(),
-  },
-}));
-
 import { useAuth } from '../../contexts/AuthContext';
-import { api } from '../../api/client';
 
 const mockUseAuth = vi.mocked(useAuth);
-const mockApi = vi.mocked(api);
 
 const mockChat: ChatSummary = {
   id: 'test-chat-123',

@@ -60,7 +60,7 @@ export default function Home() {
 
       return { previousChats };
     },
-    onError: (err, variables, context) => {
+    onError: (_err, _variables, context) => {
       if (context?.previousChats) {
         queryClient.setQueryData(['chats'], context.previousChats);
       }
@@ -102,7 +102,7 @@ export default function Home() {
 
       return { previousChats, previousSocial };
     },
-    onError: (err, variables, context) => {
+    onError: (_err, _variables, context) => {
       if (context?.previousChats) queryClient.setQueryData(['chats'], context.previousChats);
       if (context?.previousSocial) queryClient.setQueryData(['social-counts'], context.previousSocial);
     },
