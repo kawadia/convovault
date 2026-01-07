@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -137,7 +137,7 @@ describe('Home Page', () => {
         // Verify list refresh (invalidation) happened
         // Logic: Should be called initial + refetch. Might be more due to lifecycle.
         await waitFor(() => {
-            expect(api.listChats.mock.calls.length).toBeGreaterThanOrEqual(2);
+            expect((api.listChats as Mock).mock.calls.length).toBeGreaterThanOrEqual(2);
         });
 
         // Verify Chat 1 is gone from UI
