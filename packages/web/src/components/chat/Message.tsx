@@ -2,7 +2,6 @@ import type { Message as MessageType, ContentBlock } from '@convovault/shared';
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Markdown from 'react-markdown';
-import { analyzeMessage, getMetadataPillText } from '../../utils/messageAnalytics';
 import { getPreviewText } from '../../utils/textPreview';
 import { useIntersectionCollapse } from '../../hooks/useIntersectionCollapse';
 
@@ -38,10 +37,6 @@ export default function Message({
   const [isCollapsed, setIsCollapsed] = useState(isLong);
   const isUser = message.role === 'user';
   const contentRef = useRef<HTMLDivElement>(null);
-
-  // Compute analytics once (memoized)
-  const analytics = useMemo(() => analyzeMessage(message), [message]);
-  const pillText = getMetadataPillText(analytics);
 
   // Preview text for collapsed state
   const previewText = useMemo(
@@ -137,23 +132,11 @@ export default function Message({
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.15 }}
-                  className="message-preview-container cursor-pointer"
+                  className="cursor-pointer"
                   onClick={handleExpand}
                 >
                   <div className="message-vignette text-text-primary text-[15px] leading-relaxed whitespace-pre-wrap">
                     {previewText}
-                  </div>
-
-                  {/* Metadata pill floating in fade area */}
-                  <div className="message-metadata-pill">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs
-                                     rounded-full bg-bg-secondary/90 text-text-secondary
-                                     backdrop-blur-sm shadow-lg">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                      {pillText}
-                    </span>
                   </div>
                 </motion.div>
               )}
@@ -203,23 +186,11 @@ export default function Message({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
-              className="message-preview-container cursor-pointer"
+              className="cursor-pointer"
               onClick={handleExpand}
             >
               <div className="message-vignette text-text-primary text-[15px] leading-relaxed whitespace-pre-wrap">
                 {previewText}
-              </div>
-
-              {/* Metadata pill floating in fade area */}
-              <div className="message-metadata-pill">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs
-                                 rounded-full bg-bg-secondary/90 text-text-secondary
-                                 backdrop-blur-sm shadow-lg border border-border">
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                  {pillText}
-                </span>
               </div>
             </motion.div>
           )}

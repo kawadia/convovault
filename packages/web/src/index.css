@@ -43,18 +43,3 @@ body {
     transparent 100%
   );
 }
-
-/* Container for positioning the metadata pill */
-.message-preview-container {
-  position: relative;
-  padding-bottom: 2rem;
-}
-
-/* Floating metadata pill in the fade area */
-.message-metadata-pill {
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 10;
-}

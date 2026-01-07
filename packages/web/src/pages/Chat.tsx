@@ -167,7 +167,7 @@ export default function Chat() {
           </Link>
 
           <div className="flex-1 min-w-0">
-            <h1 className="text-[15px] font-medium text-text-primary truncate">
+            <h1 className="text-[19px] font-medium text-text-primary truncate">
               {chat.title}
             </h1>
           </div>
