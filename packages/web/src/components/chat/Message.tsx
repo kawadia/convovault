@@ -103,13 +103,13 @@ export default function Message({
         ref={intersectionRef}
         id={`msg-${message.index}`}
         className={`flex justify-end transition-all duration-500 ${
-          isHighlighted ? 'ring-2 ring-accent ring-offset-4 ring-offset-[#2f2f2f] rounded-2xl' : ''
+          isHighlighted ? 'ring-2 ring-accent ring-offset-4 ring-offset-bg-primary rounded-2xl' : ''
         }`}
       >
         <div className="max-w-[85%] md:max-w-[75%]">
           <motion.div
             ref={contentRef}
-            className="bg-[#403a2e] rounded-2xl px-5 py-4 overflow-hidden"
+            className="bg-bg-tertiary rounded-2xl px-5 py-4 overflow-hidden"
             layout
             transition={springTransition}
           >
@@ -122,7 +122,7 @@ export default function Message({
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.15 }}
                 >
-                  <div className="text-white text-[15px] leading-relaxed font-normal">
+                  <div className="text-text-primary text-[15px] leading-relaxed font-normal">
                     {message.content.map((block, index) => (
                       <UserContentBlock key={index} block={block} />
                     ))}
@@ -133,8 +133,8 @@ export default function Message({
                     <button
                       onClick={() => setIsCollapsed(true)}
                       className="mt-4 mx-auto block px-3 py-1.5 text-xs rounded-full
-                                 bg-[#2a2520]/80 text-[#bbb] hover:text-white
-                                 hover:bg-[#2a2520] transition-colors"
+                                 bg-bg-secondary/80 text-text-secondary hover:text-text-primary
+                                 hover:bg-bg-secondary transition-colors"
                     >
                       {pillText}
                     </button>
@@ -150,14 +150,14 @@ export default function Message({
                   className="message-preview-container cursor-pointer"
                   onClick={handleExpand}
                 >
-                  <div className="message-vignette text-white text-[15px] leading-relaxed whitespace-pre-wrap">
+                  <div className="message-vignette text-text-primary text-[15px] leading-relaxed whitespace-pre-wrap">
                     {previewText}
                   </div>
 
                   {/* Metadata pill floating in fade area */}
                   <div className="message-metadata-pill">
                     <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs
-                                     rounded-full bg-[#2a2520]/90 text-[#ccc]
+                                     rounded-full bg-bg-secondary/90 text-text-secondary
                                      backdrop-blur-sm shadow-lg">
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -180,7 +180,7 @@ export default function Message({
       ref={intersectionRef}
       id={`msg-${message.index}`}
       className={`transition-all duration-500 ${
-        isHighlighted ? 'ring-2 ring-accent ring-offset-4 ring-offset-[#2f2f2f] rounded-lg p-2 -m-2' : ''
+        isHighlighted ? 'ring-2 ring-accent ring-offset-4 ring-offset-bg-primary rounded-lg p-2 -m-2' : ''
       }`}
     >
       <motion.div
@@ -198,7 +198,7 @@ export default function Message({
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
             >
-              <div className="text-[#ececec] text-[15px] leading-relaxed font-normal">
+              <div className="text-text-primary text-[15px] leading-relaxed font-normal">
                 {message.content.map((block, index) => (
                   <AssistantContentBlock key={index} block={block} />
                 ))}
@@ -209,8 +209,8 @@ export default function Message({
                 <button
                   onClick={() => setIsCollapsed(true)}
                   className="mt-4 mx-auto block px-3 py-1.5 text-xs rounded-full
-                             bg-[#2a2a2a] text-[#888] hover:text-[#ccc]
-                             hover:bg-[#333] transition-colors border border-[#444]"
+                             bg-bg-secondary text-text-muted hover:text-text-secondary
+                             hover:bg-bg-tertiary transition-colors border border-border"
                 >
                   {pillText}
                 </button>
@@ -226,15 +226,15 @@ export default function Message({
               className="message-preview-container cursor-pointer"
               onClick={handleExpand}
             >
-              <div className="message-vignette text-[#ececec] text-[15px] leading-relaxed whitespace-pre-wrap">
+              <div className="message-vignette text-text-primary text-[15px] leading-relaxed whitespace-pre-wrap">
                 {previewText}
               </div>
 
               {/* Metadata pill floating in fade area */}
               <div className="message-metadata-pill">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs
-                                 rounded-full bg-[#2a2a2a]/90 text-[#aaa]
-                                 backdrop-blur-sm shadow-lg border border-[#444]">
+                                 rounded-full bg-bg-secondary/90 text-text-secondary
+                                 backdrop-blur-sm shadow-lg border border-border">
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
@@ -249,13 +249,13 @@ export default function Message({
   );
 }
 
-// User content - white text, simpler rendering
+// User content - simpler rendering
 function UserContentBlock({ block }: { block: ContentBlock }) {
   if (block.type === 'code') {
     return (
-      <pre className="bg-[#2a2520] text-white p-4 rounded-xl overflow-x-auto text-sm my-3 font-mono">
+      <pre className="bg-bg-secondary text-text-primary p-4 rounded-xl overflow-x-auto text-sm my-3 font-mono">
         {block.language && (
-          <div className="text-[#999] text-xs mb-2">{block.language}</div>
+          <div className="text-text-muted text-xs mb-2">{block.language}</div>
         )}
         <code>{block.content}</code>
       </pre>
@@ -279,9 +279,9 @@ function UserContentBlock({ block }: { block: ContentBlock }) {
 function AssistantContentBlock({ block }: { block: ContentBlock }) {
   if (block.type === 'code') {
     return (
-      <pre className="bg-[#1a1a1a] text-[#ececec] p-4 rounded-xl overflow-x-auto text-sm my-4 border border-[#333] font-mono">
+      <pre className="bg-bg-secondary text-text-primary p-4 rounded-xl overflow-x-auto text-sm my-4 border border-border font-mono">
         {block.language && (
-          <div className="text-[#888] text-xs mb-2">{block.language}</div>
+          <div className="text-text-muted text-xs mb-2">{block.language}</div>
         )}
         <code>{block.content}</code>
       </pre>
@@ -295,7 +295,7 @@ function AssistantContentBlock({ block }: { block: ContentBlock }) {
         components={{
           // Style code blocks within markdown
           pre: ({ children }) => (
-            <pre className="bg-[#1a1a1a] text-[#ececec] p-4 rounded-xl overflow-x-auto text-sm my-4 border border-[#333] font-mono">
+            <pre className="bg-bg-secondary text-text-primary p-4 rounded-xl overflow-x-auto text-sm my-4 border border-border font-mono">
               {children}
             </pre>
           ),
@@ -303,7 +303,7 @@ function AssistantContentBlock({ block }: { block: ContentBlock }) {
             const isInline = !className;
             if (isInline) {
               return (
-                <code className="bg-[#3a3a3a] px-1.5 py-0.5 rounded text-sm text-[#ececec] font-mono">
+                <code className="bg-bg-tertiary px-1.5 py-0.5 rounded text-sm text-text-primary font-mono">
                   {children}
                 </code>
               );
@@ -318,7 +318,7 @@ function AssistantContentBlock({ block }: { block: ContentBlock }) {
             <ol className="list-decimal pl-6 space-y-2 my-4">{children}</ol>
           ),
           li: ({ children }) => (
-            <li className="text-[#ececec] pl-1">{children}</li>
+            <li className="text-text-primary pl-1">{children}</li>
           ),
           // Style paragraphs
           p: ({ children }) => (
@@ -326,17 +326,17 @@ function AssistantContentBlock({ block }: { block: ContentBlock }) {
           ),
           // Style headings
           h1: ({ children }) => (
-            <h1 className="text-xl font-semibold mt-6 mb-3 text-[#ececec]">{children}</h1>
+            <h1 className="text-xl font-semibold mt-6 mb-3 text-text-primary">{children}</h1>
           ),
           h2: ({ children }) => (
-            <h2 className="text-lg font-semibold mt-5 mb-2 text-[#ececec]">{children}</h2>
+            <h2 className="text-lg font-semibold mt-5 mb-2 text-text-primary">{children}</h2>
           ),
           h3: ({ children }) => (
-            <h3 className="text-base font-semibold mt-4 mb-2 text-[#ececec]">{children}</h3>
+            <h3 className="text-base font-semibold mt-4 mb-2 text-text-primary">{children}</h3>
           ),
           // Style blockquotes
           blockquote: ({ children }) => (
-            <blockquote className="border-l-4 border-[#555] pl-4 my-4 text-[#bbb]">
+            <blockquote className="border-l-4 border-border pl-4 my-4 text-text-secondary">
               {children}
             </blockquote>
           ),
@@ -348,7 +348,7 @@ function AssistantContentBlock({ block }: { block: ContentBlock }) {
           ),
           // Style strong/bold
           strong: ({ children }) => (
-            <strong className="font-semibold text-[#ececec]">{children}</strong>
+            <strong className="font-semibold text-text-primary">{children}</strong>
           ),
           // Style emphasis/italic
           em: ({ children }) => (

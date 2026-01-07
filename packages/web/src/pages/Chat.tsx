@@ -134,15 +134,15 @@ export default function Chat() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#2f2f2f] flex items-center justify-center">
-        <div className="text-[#888]">Loading...</div>
+      <div className="min-h-screen bg-bg-primary flex items-center justify-center">
+        <div className="text-text-muted">Loading...</div>
       </div>
     );
   }
 
   if (error || !chat) {
     return (
-      <div className="min-h-screen bg-[#2f2f2f] flex flex-col items-center justify-center gap-4">
+      <div className="min-h-screen bg-bg-primary flex flex-col items-center justify-center gap-4">
         <div className="text-red-400">Chat not found</div>
         <Link to="/" className="text-accent hover:underline">
           Back to home
@@ -152,13 +152,13 @@ export default function Chat() {
   }
 
   return (
-    <div className="min-h-screen bg-[#2f2f2f]">
+    <div className="min-h-screen bg-bg-primary">
       {/* Minimal sticky header */}
-      <header className="sticky top-0 z-20 bg-[#2f2f2f]/95 backdrop-blur-sm border-b border-[#3a3a3a]">
+      <header className="sticky top-0 z-20 bg-bg-primary/95 backdrop-blur-sm border-b border-border">
         <div className="max-w-3xl mx-auto px-6 py-3 flex items-center gap-4">
           <Link
             to="/"
-            className="p-2 -ml-2 rounded-lg text-[#888] hover:text-[#e8e6e3] hover:bg-[#2a2a2a] transition-colors"
+            className="p-2 -ml-2 rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
             title="Back to home"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -167,7 +167,7 @@ export default function Chat() {
           </Link>
 
           <div className="flex-1 min-w-0">
-            <h1 className="text-[15px] font-medium text-[#e8e6e3] truncate">
+            <h1 className="text-[15px] font-medium text-text-primary truncate">
               {chat.title}
             </h1>
           </div>
@@ -178,7 +178,7 @@ export default function Chat() {
             className={`p-2 rounded-lg transition-colors ${
               showSearch
                 ? 'bg-accent text-white'
-                : 'text-[#888] hover:text-[#e8e6e3] hover:bg-[#2a2a2a]'
+                : 'text-text-muted hover:text-text-primary hover:bg-bg-hover'
             }`}
             title="Search (⌘F)"
           >
@@ -192,7 +192,7 @@ export default function Chat() {
             href={chat.sourceUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="p-2 rounded-lg text-[#888] hover:text-[#e8e6e3] hover:bg-[#2a2a2a] transition-colors"
+            className="p-2 rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
             title="View on Claude"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -203,11 +203,11 @@ export default function Chat() {
 
         {/* Search bar */}
         {showSearch && (
-          <div className="border-t border-[#333] px-6 py-3">
+          <div className="border-t border-border px-6 py-3">
             <div className="max-w-3xl mx-auto flex items-center gap-3">
               <div className="relative flex-1">
                 <svg
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#666]"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -219,7 +219,7 @@ export default function Chat() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search in this chat..."
-                  className="w-full pl-9 pr-4 py-2 text-sm rounded-lg bg-[#2a2a2a] border border-[#333] text-[#e8e6e3] placeholder:text-[#666] focus:ring-1 focus:ring-accent focus:border-accent outline-none"
+                  className="w-full pl-9 pr-4 py-2 text-sm rounded-lg bg-bg-hover border border-border text-text-primary placeholder:text-text-muted focus:ring-1 focus:ring-accent focus:border-accent outline-none"
                   autoFocus
                 />
               </div>
@@ -227,7 +227,7 @@ export default function Chat() {
               {/* Match count and navigation */}
               {searchQuery.length >= 2 && (
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-[#888] whitespace-nowrap">
+                  <span className="text-sm text-text-muted whitespace-nowrap">
                     {isSearching ? (
                       'Searching...'
                     ) : searchResults.length === 0 ? (
@@ -241,7 +241,7 @@ export default function Chat() {
                       <button
                         onClick={goToPrevMatch}
                         disabled={currentMatchIndex === 0}
-                        className="p-1.5 rounded hover:bg-[#333] disabled:opacity-40 disabled:cursor-not-allowed text-[#888]"
+                        className="p-1.5 rounded hover:bg-bg-tertiary disabled:opacity-40 disabled:cursor-not-allowed text-text-muted"
                         title="Previous (Shift+Enter)"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -251,7 +251,7 @@ export default function Chat() {
                       <button
                         onClick={goToNextMatch}
                         disabled={currentMatchIndex === searchResults.length - 1}
-                        className="p-1.5 rounded hover:bg-[#333] disabled:opacity-40 disabled:cursor-not-allowed text-[#888]"
+                        className="p-1.5 rounded hover:bg-bg-tertiary disabled:opacity-40 disabled:cursor-not-allowed text-text-muted"
                         title="Next (Enter)"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -271,7 +271,7 @@ export default function Chat() {
                   setSearchResults([]);
                   setHighlightedMessageIndex(null);
                 }}
-                className="p-1.5 rounded hover:bg-[#333] text-[#666]"
+                className="p-1.5 rounded hover:bg-bg-tertiary text-text-muted"
                 title="Close (Escape)"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -284,9 +284,9 @@ export default function Chat() {
       </header>
 
       {/* Disclaimer banner like Claude */}
-      <div className="bg-[#2a2a2a] border-b border-[#333]">
+      <div className="bg-bg-secondary border-b border-border">
         <div className="max-w-3xl mx-auto px-6 py-3">
-          <div className="flex items-start gap-3 text-sm text-[#888]">
+          <div className="flex items-start gap-3 text-sm text-text-muted">
             <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
