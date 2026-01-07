@@ -229,7 +229,7 @@ export default function Chat() {
 
           {/* Second row: message count and fold controls */}
           {longMessageCount > 0 && (
-            <div className="flex items-center gap-3 mt-3 pt-3 border-t border-border">
+            <div className="flex items-center gap-3 mt-3 pb-3 border-b border-border">
               <span className="text-sm text-text-muted mr-auto">
                 {longMessageCount} long {longMessageCount === 1 ? 'message' : 'messages'}
               </span>
