@@ -157,6 +157,10 @@ export default function Home() {
         queryClient.invalidateQueries({ queryKey: ['chats', user.id] });
       }
     },
+    onError: (error) => {
+      console.error('Failed to delete chat:', error);
+      alert(`Failed to delete chat: ${error.message}`);
+    },
   });
 
   const handleDelete = (id: string) => {

@@ -443,13 +443,7 @@ chatsRoutes.delete('/chats/:id', requireAuth, async (c) => {
   }
 
   try {
-    // Delete from chats table
-    await c.env.DB.prepare('DELETE FROM chats WHERE id = ?').bind(id).run();
-
-    // Delete from FTS
-    await removeChatFromFTS(c.env.DB, id);
-
-    // Also delete related user data
+    // Delete related user data FIRST (due to foreign key constraint on user_chats)
     await c.env.DB.prepare('DELETE FROM user_chats WHERE chat_id = ?')
       .bind(id)
       .run();
@@ -459,11 +453,24 @@ chatsRoutes.delete('/chats/:id', requireAuth, async (c) => {
     await c.env.DB.prepare('DELETE FROM user_highlights WHERE chat_id = ?')
       .bind(id)
       .run();
+
+    // Delete from FTS
+    await removeChatFromFTS(c.env.DB, id);
+
+    // Finally delete from chats table (after removing FK references)
+    const result = await c.env.DB.prepare('DELETE FROM chats WHERE id = ?').bind(id).run();
+
+    if (!result.success) {
+      console.error('Failed to delete chat from DB:', result);
+      return c.json({ error: 'Failed to delete chat from database' }, 500);
+    }
+
+    return c.json({ deleted: true });
   } catch (error) {
     console.error('Failed to delete chat:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return c.json({ error: `Failed to delete chat: ${errorMessage}` }, 500);
   }
-
-  return c.json({ deleted: true });
 });
 
 /**
