@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 
 interface ChatCardProps {
   chat: ChatSummary;
-  onDelete?: (id: string) => void;
+  onDelete?: (chat: { id: string; title: string }) => void;
   isBookmarked?: boolean;
   onToggleBookmark?: (id: string) => void;
   isFavorite?: boolean;
@@ -34,9 +34,7 @@ export default function ChatCard({
   const handleDelete = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (onDelete && confirm(`Delete "${chat.title}"?`)) {
-      onDelete(chat.id);
-    }
+    onDelete?.({ id: chat.id, title: chat.title });
   };
 
   const handleToggleFavorite = (e: React.MouseEvent) => {

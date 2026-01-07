@@ -5,6 +5,7 @@ import { api, SearchResult } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import ImportModal from '../components/collection/ImportModal';
 import ChatCard from '../components/collection/ChatCard';
+import DeleteConfirmModal from '../components/collection/DeleteConfirmModal';
 import UserMenu from '../components/layout/UserMenu';
 import LoginPrompt from '../components/auth/LoginPrompt';
 
@@ -31,6 +32,8 @@ export default function Home() {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [loginPrompt, setLoginPrompt] = useState<{ title: string; message: string } | null>(null);
+  const [chatToDelete, setChatToDelete] = useState<{ id: string; title: string } | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const { user, login, isLoading: isAuthLoading } = useAuth();
 
@@ -156,15 +159,29 @@ export default function Home() {
       if (user) {
         queryClient.invalidateQueries({ queryKey: ['chats', user.id] });
       }
+      setChatToDelete(null);
+      setDeleteError(null);
     },
     onError: (error) => {
       console.error('Failed to delete chat:', error);
-      alert(`Failed to delete chat: ${error.message}`);
+      setDeleteError(error.message);
     },
   });
 
-  const handleDelete = (id: string) => {
-    deleteMutation.mutate(id);
+  const handleDeleteClick = (chat: { id: string; title: string }) => {
+    setDeleteError(null);
+    setChatToDelete(chat);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (chatToDelete) {
+      deleteMutation.mutate(chatToDelete.id);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setChatToDelete(null);
+    setDeleteError(null);
   };
 
   // Search when debounced query changes
@@ -438,7 +455,7 @@ export default function Home() {
                   <ChatCard
                     key={chat.id}
                     chat={chat}
-                    onDelete={handleDelete}
+                    onDelete={handleDeleteClick}
                     isBookmarked={user ? !!chat.isBookmarked : false}
                     onToggleBookmark={(id) => toggleBookmark(id, !!chat.isBookmarked)}
                     isFavorite={user ? !!chat.isFavorite : false}
@@ -459,6 +476,15 @@ export default function Home() {
           title={loginPrompt.title}
           message={loginPrompt.message}
           onClose={() => setLoginPrompt(null)}
+        />
+      )}
+      {chatToDelete && (
+        <DeleteConfirmModal
+          title={chatToDelete.title}
+          onConfirm={handleDeleteConfirm}
+          onCancel={handleDeleteCancel}
+          isDeleting={deleteMutation.isPending}
+          error={deleteError}
         />
       )}
     </div>
