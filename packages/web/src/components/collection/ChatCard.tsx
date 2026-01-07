@@ -70,7 +70,7 @@ export default function ChatCard({ chat, onDelete, isBookmarked, onToggleBookmar
         <button
           onClick={handleToggleFavorite}
           className={`p-1.5 transition-all ${isFavorite
-            ? 'text-accent opacity-100'
+            ? 'text-hot-pink opacity-100'
             : 'text-text-secondary opacity-0 group-hover:opacity-100'
             } hover:scale-110 active:scale-95`}
           title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
