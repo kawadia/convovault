@@ -54,49 +54,47 @@ export default function ChatCard({ chat, onDelete }: ChatCardProps) {
 
   return (
     <div className="relative group">
-      <div className="absolute top-2 right-2 z-10 flex gap-2">
-        {user && (
-          <button
-            onClick={handleToggleFavorite}
-            className={`p-1.5 rounded-full transition-all ${isFavorite
-              ? 'bg-red-500/10 text-red-500 opacity-100'
-              : 'bg-bg-tertiary text-text-secondary opacity-0 group-hover:opacity-100'
-              } hover:scale-110 active:scale-95`}
-            title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+      {user && (
+        <button
+          onClick={handleToggleFavorite}
+          className={`absolute top-3 left-1/2 -translate-x-1/2 z-10 p-1.5 rounded-full transition-all ${isFavorite
+            ? 'bg-accent/20 text-accent opacity-100'
+            : 'bg-bg-tertiary text-text-secondary opacity-0 group-hover:opacity-100'
+            } hover:scale-110 active:scale-95`}
+          title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+        >
+          <svg
+            className="w-5 h-5 transition-colors"
+            fill={isFavorite ? 'currentColor' : 'none'}
+            stroke="currentColor"
+            viewBox="0 0 24 24"
           >
-            <svg
-              className="w-5 h-5 transition-colors"
-              fill={isFavorite ? 'currentColor' : 'none'}
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-              />
-            </svg>
-          </button>
-        )}
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+            />
+          </svg>
+        </button>
+      )}
 
-        {canDelete && onDelete && (
-          <button
-            onClick={handleDelete}
-            className="p-1.5 bg-bg-tertiary text-text-secondary rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 hover:text-white"
-            title="Delete chat"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-              />
-            </svg>
-          </button>
-        )}
-      </div>
+      {canDelete && onDelete && (
+        <button
+          onClick={handleDelete}
+          className="absolute top-2 right-2 z-10 p-1.5 bg-bg-tertiary text-text-secondary rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-accent hover:text-white"
+          title="Delete chat"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+            />
+          </svg>
+        </button>
+      )}
 
       <Link
         to={`/chat/${chat.id}`}

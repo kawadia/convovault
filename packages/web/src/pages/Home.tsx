@@ -89,14 +89,13 @@ export default function Home() {
               </p>
             </div>
             <div className="flex items-center gap-3">
-              {user && (
-                <button
-                  onClick={() => setShowImport(true)}
-                  className="px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-hover transition-colors"
-                >
-                  Import Chat
-                </button>
-              )}
+              <button
+                onClick={() => user ? setShowImport(true) : login()}
+                className="px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-hover transition-colors"
+                disabled={isAuthLoading}
+              >
+                Import Chat
+              </button>
               {isAuthLoading ? (
                 <div className="w-8 h-8 rounded-full bg-bg-tertiary animate-pulse" />
               ) : user ? (
@@ -202,11 +201,10 @@ export default function Home() {
                   >
                     <div className="flex items-start gap-3">
                       <div
-                        className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
-                          result.role === 'user'
+                        className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${result.role === 'user'
                             ? 'bg-accent text-white'
                             : 'bg-text-muted text-white'
-                        }`}
+                          }`}
                       >
                         {result.role === 'user' ? 'U' : 'A'}
                       </div>
