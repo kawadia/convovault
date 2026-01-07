@@ -424,12 +424,12 @@ export default function Home() {
                     key={chat.id}
                     chat={chat}
                     onDelete={handleDelete}
-                    isBookmarked={chat.isBookmarked}
+                    isBookmarked={!!chat.isBookmarked}
                     onToggleBookmark={(id) => toggleBookmark(id, !!chat.isBookmarked)}
                     isFavorite={!!chat.isFavorite}
                     onToggleFavorite={(id) => toggleFavorite(id, !!chat.isFavorite)}
                     onLoginRequired={(title, message) => setLoginPrompt({ title, message })}
-                    favoriteCount={socialCounts[chat.id]}
+                    favoriteCount={socialCounts[chat.id] || 0}
                   />
                 ))}
               </div>

@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
 import type { ChatSummary } from '../../api/client';
 import { useAuth } from '../../contexts/AuthContext';
@@ -22,23 +21,15 @@ export default function ChatCard({
   isFavorite,
   onToggleFavorite,
   onLoginRequired,
-  favoriteCount: propFavoriteCount
+  favoriteCount = 0
 }: ChatCardProps) {
   const { user, isAdmin } = useAuth();
-  const [favoriteCount, setFavoriteCount] = useState(propFavoriteCount || 0);
 
   const formattedDate = new Date(chat.fetchedAt).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
   });
-
-  // Sync with prop when it arrives asynchronously
-  useEffect(() => {
-    if (propFavoriteCount !== undefined) {
-      setFavoriteCount(propFavoriteCount);
-    }
-  }, [propFavoriteCount]);
 
   const handleDelete = (e: React.MouseEvent) => {
     e.preventDefault();
