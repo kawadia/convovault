@@ -27,3 +27,34 @@ body {
     'Helvetica Neue', Arial, sans-serif;
   @apply bg-bg-primary text-text-primary;
 }
+
+/* Editorial Stream - Vignette fade for collapsed messages */
+.message-vignette {
+  mask-image: linear-gradient(
+    to bottom,
+    black 0%,
+    black 50%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    black 0%,
+    black 50%,
+    transparent 100%
+  );
+}
+
+/* Container for positioning the metadata pill */
+.message-preview-container {
+  position: relative;
+  padding-bottom: 2rem;
+}
+
+/* Floating metadata pill in the fade area */
+.message-metadata-pill {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+}

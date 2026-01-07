@@ -1,10 +1,9 @@
-import type { Message as MessageType, Participants } from '@convovault/shared';
+import type { Message as MessageType } from '@convovault/shared';
 import { useState } from 'react';
 import Message from './Message';
 
 interface ChatViewerProps {
   messages: MessageType[];
-  participants?: Participants;
   highlightedMessageIndex?: number | null;
 }
 
@@ -15,8 +14,11 @@ function getMessageLength(message: MessageType): number {
   return message.content.reduce((sum, block) => sum + block.content.length, 0);
 }
 
-export default function ChatViewer({ messages, participants, highlightedMessageIndex }: ChatViewerProps) {
+export default function ChatViewer({ messages, highlightedMessageIndex }: ChatViewerProps) {
   const [globalFoldState, setGlobalFoldState] = useState<'all-folded' | 'all-unfolded' | null>(null);
+
+  // Disable auto-collapse when a message is highlighted (during search)
+  const autoCollapseEnabled = highlightedMessageIndex === null;
 
   // Count how many messages are "long"
   const longMessageCount = messages.filter(m => getMessageLength(m) > LONG_MESSAGE_THRESHOLD).length;
@@ -73,8 +75,8 @@ export default function ChatViewer({ messages, participants, highlightedMessageI
             key={message.id}
             message={message}
             globalFoldState={globalFoldState}
-            participants={participants}
             isHighlighted={highlightedMessageIndex === message.index}
+            autoCollapseEnabled={autoCollapseEnabled}
           />
         ))}
       </div>

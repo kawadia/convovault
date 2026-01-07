@@ -302,7 +302,6 @@ export default function Chat() {
       <main className="max-w-3xl mx-auto px-6 py-12">
         <ChatViewer
           messages={chat.messages}
-          participants={chat.participants}
           highlightedMessageIndex={highlightedMessageIndex}
         />
       </main>

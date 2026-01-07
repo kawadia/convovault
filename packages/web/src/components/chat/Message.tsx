@@ -1,26 +1,80 @@
-import type { Message as MessageType, ContentBlock, Participants } from '@convovault/shared';
-import { useEffect, useState, useRef } from 'react';
+import type { Message as MessageType, ContentBlock } from '@convovault/shared';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Markdown from 'react-markdown';
+import { analyzeMessage, getMetadataPillText } from '../../utils/messageAnalytics';
+import { getPreviewText } from '../../utils/textPreview';
+import { useIntersectionCollapse } from '../../hooks/useIntersectionCollapse';
 
 // Threshold for considering a message "long"
 const LONG_MESSAGE_THRESHOLD = 500;
 
+// Spring animation config
+const springTransition = {
+  type: 'spring' as const,
+  stiffness: 300,
+  damping: 30,
+  mass: 1,
+};
+
 interface MessageProps {
   message: MessageType;
   globalFoldState?: 'all-folded' | 'all-unfolded' | null;
-  participants?: Participants;
   isHighlighted?: boolean;
+  autoCollapseEnabled?: boolean;
 }
 
 function getMessageLength(message: MessageType): number {
   return message.content.reduce((sum, block) => sum + block.content.length, 0);
 }
 
-export default function Message({ message, globalFoldState, isHighlighted }: MessageProps) {
+export default function Message({
+  message,
+  globalFoldState,
+  isHighlighted,
+  autoCollapseEnabled = true,
+}: MessageProps) {
   const isLong = getMessageLength(message) > LONG_MESSAGE_THRESHOLD;
   const [isCollapsed, setIsCollapsed] = useState(isLong);
   const isUser = message.role === 'user';
-  const messageRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // Compute analytics once (memoized)
+  const analytics = useMemo(() => analyzeMessage(message), [message]);
+  const pillText = getMetadataPillText(analytics, isCollapsed);
+
+  // Preview text for collapsed state
+  const previewText = useMemo(
+    () => getPreviewText(message.content[0]?.content || ''),
+    [message]
+  );
+
+  // Auto-collapse when scrolled out of view
+  const intersectionRef = useIntersectionCollapse({
+    isExpanded: !isCollapsed,
+    onCollapse: () => setIsCollapsed(true),
+    enabled: autoCollapseEnabled && isLong,
+  });
+
+  // Handle expansion with smart scroll
+  const handleExpand = useCallback(() => {
+    setIsCollapsed(false);
+
+    // After animation, check if we need to scroll
+    setTimeout(() => {
+      if (contentRef.current) {
+        const rect = contentRef.current.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+
+        // If content would extend beyond comfortable reading position, scroll
+        if (rect.height > viewportHeight * 0.6 || rect.top < viewportHeight * 0.15) {
+          const targetPosition = viewportHeight * 0.15;
+          const scrollY = window.scrollY + rect.top - targetPosition;
+          window.scrollTo({ top: Math.max(0, scrollY), behavior: 'smooth' });
+        }
+      }
+    }, 350);
+  }, []);
 
   // Respond to global fold/unfold commands
   useEffect(() => {
@@ -33,118 +87,164 @@ export default function Message({ message, globalFoldState, isHighlighted }: Mes
 
   // Scroll into view and unfold when highlighted
   useEffect(() => {
-    if (isHighlighted && messageRef.current) {
-      // Unfold if collapsed
+    if (isHighlighted && intersectionRef.current) {
       if (isCollapsed) {
         setIsCollapsed(false);
       }
-      // Scroll into view with some offset
       setTimeout(() => {
-        messageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        intersectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }, 100);
     }
-  }, [isHighlighted]);
-
-  // Generate preview text for collapsed state
-  const previewText = message.content[0]?.content.substring(0, 200).replace(/\n/g, ' ') || '';
+  }, [isHighlighted, isCollapsed]);
 
   if (isUser) {
-    // User message: right-aligned with dark rounded background, WHITE text
     return (
       <div
-        ref={messageRef}
+        ref={intersectionRef}
         id={`msg-${message.index}`}
         className={`flex justify-end transition-all duration-500 ${
           isHighlighted ? 'ring-2 ring-accent ring-offset-4 ring-offset-[#2f2f2f] rounded-2xl' : ''
         }`}
       >
         <div className="max-w-[85%] md:max-w-[75%]">
-          {/* Fold button for long messages */}
-          {isLong && (
-            <div className="flex justify-end mb-1">
-              <button
-                onClick={() => setIsCollapsed(!isCollapsed)}
-                className="flex items-center gap-1 px-2 py-0.5 text-xs rounded-md text-[#999] hover:text-[#ccc] transition-colors"
-              >
-                <svg
-                  className={`w-3 h-3 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+          <motion.div
+            ref={contentRef}
+            className="bg-[#403a2e] rounded-2xl px-5 py-4 overflow-hidden"
+            layout
+            transition={springTransition}
+          >
+            <AnimatePresence mode="wait" initial={false}>
+              {!isCollapsed ? (
+                <motion.div
+                  key="expanded"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-                {isCollapsed ? 'Expand' : 'Collapse'}
-              </button>
-            </div>
-          )}
+                  <div className="text-white text-[15px] leading-relaxed font-normal">
+                    {message.content.map((block, index) => (
+                      <UserContentBlock key={index} block={block} />
+                    ))}
+                  </div>
 
-          <div className="bg-[#403a2e] rounded-2xl px-5 py-4">
-            {!isCollapsed ? (
-              <div className="text-white text-[15px] leading-relaxed font-normal">
-                {message.content.map((block, index) => (
-                  <UserContentBlock key={index} block={block} />
-                ))}
-              </div>
-            ) : (
-              <div
-                className="text-white text-[15px] leading-relaxed cursor-pointer"
-                onClick={() => setIsCollapsed(false)}
-              >
-                {previewText}...
-                <span className="ml-2 text-xs text-[#999]">(click to expand)</span>
-              </div>
-            )}
-          </div>
+                  {/* Collapse pill at bottom for long messages */}
+                  {isLong && (
+                    <button
+                      onClick={() => setIsCollapsed(true)}
+                      className="mt-4 mx-auto block px-3 py-1.5 text-xs rounded-full
+                                 bg-[#2a2520]/80 text-[#bbb] hover:text-white
+                                 hover:bg-[#2a2520] transition-colors"
+                    >
+                      {pillText}
+                    </button>
+                  )}
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="collapsed"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="message-preview-container cursor-pointer"
+                  onClick={handleExpand}
+                >
+                  <div className="message-vignette text-white text-[15px] leading-relaxed whitespace-pre-wrap">
+                    {previewText}
+                  </div>
+
+                  {/* Metadata pill floating in fade area */}
+                  <div className="message-metadata-pill">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs
+                                     rounded-full bg-[#2a2520]/90 text-[#ccc]
+                                     backdrop-blur-sm shadow-lg">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                      {pillText}
+                    </span>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
         </div>
       </div>
     );
   }
 
-  // Assistant message: left-aligned, no background, same text color
+  // Assistant message: left-aligned, no background
   return (
     <div
-      ref={messageRef}
+      ref={intersectionRef}
       id={`msg-${message.index}`}
       className={`transition-all duration-500 ${
         isHighlighted ? 'ring-2 ring-accent ring-offset-4 ring-offset-[#2f2f2f] rounded-lg p-2 -m-2' : ''
       }`}
     >
-      {/* Fold button for long messages */}
-      {isLong && (
-        <div className="flex justify-start mb-2">
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="flex items-center gap-1 px-2 py-0.5 text-xs rounded-md text-[#888] hover:text-[#aaa] transition-colors"
-          >
-            <svg
-              className={`w-3 h-3 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+      <motion.div
+        ref={contentRef}
+        layout
+        transition={springTransition}
+        className="overflow-hidden"
+      >
+        <AnimatePresence mode="wait" initial={false}>
+          {!isCollapsed ? (
+            <motion.div
+              key="expanded"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-            {isCollapsed ? 'Expand' : 'Collapse'}
-          </button>
-        </div>
-      )}
+              <div className="text-[#ececec] text-[15px] leading-relaxed font-normal">
+                {message.content.map((block, index) => (
+                  <AssistantContentBlock key={index} block={block} />
+                ))}
+              </div>
 
-      {!isCollapsed ? (
-        <div className="text-[#ececec] text-[15px] leading-relaxed font-normal">
-          {message.content.map((block, index) => (
-            <AssistantContentBlock key={index} block={block} />
-          ))}
-        </div>
-      ) : (
-        <div
-          className="text-[#ececec] text-[15px] leading-relaxed cursor-pointer"
-          onClick={() => setIsCollapsed(false)}
-        >
-          {previewText}...
-          <span className="ml-2 text-xs text-[#888]">(click to expand)</span>
-        </div>
-      )}
+              {/* Collapse pill at bottom for long messages */}
+              {isLong && (
+                <button
+                  onClick={() => setIsCollapsed(true)}
+                  className="mt-4 mx-auto block px-3 py-1.5 text-xs rounded-full
+                             bg-[#2a2a2a] text-[#888] hover:text-[#ccc]
+                             hover:bg-[#333] transition-colors border border-[#444]"
+                >
+                  {pillText}
+                </button>
+              )}
+            </motion.div>
+          ) : (
+            <motion.div
+              key="collapsed"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="message-preview-container cursor-pointer"
+              onClick={handleExpand}
+            >
+              <div className="message-vignette text-[#ececec] text-[15px] leading-relaxed whitespace-pre-wrap">
+                {previewText}
+              </div>
+
+              {/* Metadata pill floating in fade area */}
+              <div className="message-metadata-pill">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs
+                                 rounded-full bg-[#2a2a2a]/90 text-[#aaa]
+                                 backdrop-blur-sm shadow-lg border border-[#444]">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                  {pillText}
+                </span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
     </div>
   );
 }
