@@ -129,7 +129,7 @@ export default function Home() {
   const debouncedQuery = useDebounce(searchQuery, 300);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['chats'],
+    queryKey: ['chats', user?.id],
     queryFn: () => api.listChats(),
   });
 
@@ -141,10 +141,21 @@ export default function Home() {
 
   const socialCounts = socialData?.counts || {};
 
+  // Force cache invalidation when user logs out to clear personal state
+  useEffect(() => {
+    if (!user) {
+      queryClient.removeQueries({ queryKey: ['chats'] });
+    }
+  }, [user, queryClient]);
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.deleteChat(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['chats'] });
+      // Also invalidate exact user query to be safe
+      if (user) {
+        queryClient.invalidateQueries({ queryKey: ['chats', user.id] });
+      }
     },
   });
 
@@ -424,9 +435,9 @@ export default function Home() {
                     key={chat.id}
                     chat={chat}
                     onDelete={handleDelete}
-                    isBookmarked={!!chat.isBookmarked}
+                    isBookmarked={user ? !!chat.isBookmarked : false}
                     onToggleBookmark={(id) => toggleBookmark(id, !!chat.isBookmarked)}
-                    isFavorite={!!chat.isFavorite}
+                    isFavorite={user ? !!chat.isFavorite : false}
                     onToggleFavorite={(id) => toggleFavorite(id, !!chat.isFavorite)}
                     onLoginRequired={(title, message) => setLoginPrompt({ title, message })}
                     favoriteCount={socialCounts[chat.id] || 0}

@@ -60,9 +60,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         method: 'POST',
         credentials: 'include',
       });
-      setUser(null);
     } catch (error) {
       console.error('Logout failed:', error);
+    } finally {
+      setUser(null);
     }
   };
 
