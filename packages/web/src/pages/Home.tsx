@@ -34,14 +34,6 @@ export default function Home() {
 
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'longest' | 'shortest'>('newest');
   const [activeFilters, setActiveFilters] = useState<Set<string>>(new Set());
-  const [bookmarks, setBookmarks] = useState<Set<string>>(() => {
-    const saved = localStorage.getItem('diastack-bookmarks');
-    return saved ? new Set(JSON.parse(saved)) : new Set();
-  });
-
-  useEffect(() => {
-    localStorage.setItem('diastack-bookmarks', JSON.stringify(Array.from(bookmarks)));
-  }, [bookmarks]);
 
   const toggleFilter = (filter: string) => {
     const next = new Set(activeFilters);
@@ -50,11 +42,17 @@ export default function Home() {
     setActiveFilters(next);
   };
 
-  const toggleBookmark = (id: string) => {
-    const next = new Set(bookmarks);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    setBookmarks(next);
+  const bookmarkMutation = useMutation({
+    mutationFn: ({ id, bookmark }: { id: string; bookmark: boolean }) =>
+      api.toggleBookmark(id, bookmark),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['chats'] });
+    },
+  });
+
+  const toggleBookmark = (id: string, current: boolean) => {
+    if (!user) return;
+    bookmarkMutation.mutate({ id, bookmark: !current });
   };
 
   const debouncedQuery = useDebounce(searchQuery, 300);
@@ -104,7 +102,7 @@ export default function Home() {
   const chats = rawChats
     .filter(chat => {
       if (activeFilters.has('Favorites') && !chat.isFavorite) return false;
-      if (activeFilters.has('Bookmarked') && !bookmarks.has(chat.id)) return false;
+      if (activeFilters.has('Bookmarked') && !chat.isBookmarked) return false;
       return true;
     })
     .sort((a, b) => {
@@ -173,10 +171,10 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="space-y-4">
-            <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
-              {/* Search bar - 60% width */}
-              <div className="relative w-full md:w-[60%]">
+          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div className="flex flex-col md:flex-row gap-4 items-center flex-1 w-full">
+              {/* Search bar - 50% width */}
+              <div className="relative w-full md:w-[50%]">
                 <svg
                   className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted"
                   fill="none"
@@ -209,45 +207,44 @@ export default function Home() {
                 )}
               </div>
 
-              {/* Sort Dropdown */}
-              <div className="flex items-center gap-2 w-full md:w-auto">
-                <span className="text-sm text-text-secondary whitespace-nowrap">Sort by:</span>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as any)}
-                  className="bg-bg-tertiary text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-accent outline-none cursor-pointer hover:bg-bg-hover transition-colors"
-                >
-                  <option value="newest">Newest First</option>
-                  <option value="oldest">Oldest First</option>
-                  <option value="longest">Most Messages</option>
-                  <option value="shortest">Fewest Messages</option>
-                </select>
+              {/* Filter Chips */}
+              <div className="flex flex-wrap gap-2 items-center">
+                {['Favorites', 'Bookmarked'].map((filter) => (
+                  <button
+                    key={filter}
+                    onClick={() => toggleFilter(filter)}
+                    className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all border ${activeFilters.has(filter)
+                      ? 'bg-accent/10 border-accent text-accent'
+                      : 'bg-bg-tertiary border-border text-text-secondary hover:bg-bg-hover'
+                      }`}
+                  >
+                    {filter}
+                  </button>
+                ))}
+                {activeFilters.size > 0 && (
+                  <button
+                    onClick={() => setActiveFilters(new Set())}
+                    className="text-xs text-text-muted hover:text-accent transition-colors underline underline-offset-4 ml-2"
+                  >
+                    Clear
+                  </button>
+                )}
               </div>
             </div>
 
-            {/* Filter Chips */}
-            <div className="flex flex-wrap gap-2 items-center">
-              <span className="text-sm text-text-secondary mr-1">Filter:</span>
-              {['Favorites', 'Bookmarked'].map((filter) => (
-                <button
-                  key={filter}
-                  onClick={() => toggleFilter(filter)}
-                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all border ${activeFilters.has(filter)
-                    ? 'bg-accent/10 border-accent text-accent shadow-sm'
-                    : 'bg-bg-tertiary border-border text-text-secondary hover:bg-bg-hover hover:border-text-muted'
-                    }`}
-                >
-                  {filter}
-                </button>
-              ))}
-              {activeFilters.size > 0 && (
-                <button
-                  onClick={() => setActiveFilters(new Set())}
-                  className="text-xs text-text-muted hover:text-accent transition-colors underline underline-offset-4 ml-2"
-                >
-                  Clear all
-                </button>
-              )}
+            {/* Sort Dropdown */}
+            <div className="flex items-center gap-2 w-full md:w-auto">
+              <span className="text-sm text-text-secondary whitespace-nowrap">Sort:</span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="bg-bg-tertiary text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-accent outline-none cursor-pointer hover:bg-bg-hover transition-colors"
+              >
+                <option value="newest">Newest</option>
+                <option value="oldest">Oldest</option>
+                <option value="longest">Most Messages</option>
+                <option value="shortest">Fewest Messages</option>
+              </select>
             </div>
           </div>
         </div>
@@ -339,8 +336,8 @@ export default function Home() {
                     key={chat.id}
                     chat={chat}
                     onDelete={handleDelete}
-                    isBookmarked={bookmarks.has(chat.id)}
-                    onToggleBookmark={toggleBookmark}
+                    isBookmarked={chat.isBookmarked}
+                    onToggleBookmark={(id) => toggleBookmark(id, !!chat.isBookmarked)}
                   />
                 ))}
               </div>

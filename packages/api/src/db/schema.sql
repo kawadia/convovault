@@ -50,6 +50,8 @@ CREATE TABLE IF NOT EXISTS user_chats (
   chat_id TEXT NOT NULL,
   read_position INTEGER DEFAULT 0,
   is_read INTEGER DEFAULT 0,
+  is_favorite INTEGER DEFAULT 0,
+  is_bookmarked INTEGER DEFAULT 0,
   folder TEXT,
   imported_at INTEGER NOT NULL,
   PRIMARY KEY (user_id, chat_id),

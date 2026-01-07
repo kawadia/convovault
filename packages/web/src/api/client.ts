@@ -54,6 +54,7 @@ export interface ChatSummary {
   participants?: Participants;
   userId?: string; // Owner of the chat (who imported it)
   isFavorite?: boolean;
+  isBookmarked?: boolean;
 }
 
 export interface ChatDetail extends ChatSummary {
@@ -106,6 +107,14 @@ export const api = {
     return fetchApi<{ favorite: boolean }>(`/chats/${id}/favorite`, {
       method: 'POST',
       body: JSON.stringify({ favorite }),
+    });
+  },
+
+  // Toggle bookmark status
+  async toggleBookmark(id: string, bookmark: boolean): Promise<{ bookmark: boolean }> {
+    return fetchApi<{ bookmark: boolean }>(`/chats/${id}/bookmark`, {
+      method: 'POST',
+      body: JSON.stringify({ bookmark }),
     });
   },
 };

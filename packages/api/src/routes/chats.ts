@@ -239,7 +239,8 @@ chatsRoutes.get('/chats', async (c) => {
       SELECT
         c.id, c.source, c.source_url, c.title, c.created_at, c.fetched_at,
         c.message_count, c.word_count, c.content, c.user_id,
-        COALESCE(uc.is_favorite, 0) as is_favorite
+        COALESCE(uc.is_favorite, 0) as is_favorite,
+        COALESCE(uc.is_bookmarked, 0) as is_bookmarked
       FROM chats c
       LEFT JOIN user_chats uc ON c.id = uc.chat_id AND uc.user_id = ?
       ORDER BY c.fetched_at DESC
@@ -270,6 +271,7 @@ chatsRoutes.get('/chats', async (c) => {
         participants,
         userId: row.user_id, // Include owner ID for permission checks
         isFavorite: Boolean(row.is_favorite),
+        isBookmarked: Boolean(row.is_bookmarked),
       };
     });
 
@@ -290,7 +292,7 @@ chatsRoutes.get('/chats/:id', async (c) => {
 
   try {
     const chat = await c.env.DB.prepare(`
-      SELECT c.*, COALESCE(uc.is_favorite, 0) as is_favorite
+      SELECT c.*, COALESCE(uc.is_favorite, 0) as is_favorite, COALESCE(uc.is_bookmarked, 0) as is_bookmarked
       FROM chats c
       LEFT JOIN user_chats uc ON c.id = uc.chat_id AND uc.user_id = ?
       WHERE c.id = ?
@@ -347,6 +349,48 @@ chatsRoutes.post('/chats/:id/favorite', requireAuth, async (c) => {
   } catch (error) {
     console.error('Failed to favorite chat:', error);
     return c.json({ error: 'Failed to update favorite status' }, 500);
+  }
+});
+
+/**
+ * POST /chats/:id/bookmark
+ * Toggle bookmark status
+ */
+chatsRoutes.post('/chats/:id/bookmark', requireAuth, async (c) => {
+  const { id } = c.req.param();
+  const user = c.get('user')!;
+  const body = await c.req.json().catch(() => ({}));
+  const isBookmarked = body.bookmark === true ? 1 : 0;
+
+  try {
+    // Check if user_chat entry exists
+    const existing = await c.env.DB.prepare(
+      'SELECT chat_id FROM user_chats WHERE user_id = ? AND chat_id = ?'
+    )
+      .bind(user.id, id)
+      .first();
+
+    if (existing) {
+      // Update
+      await c.env.DB.prepare(
+        'UPDATE user_chats SET is_bookmarked = ? WHERE user_id = ? AND chat_id = ?'
+      )
+        .bind(isBookmarked, user.id, id)
+        .run();
+    } else {
+      // Insert
+      const now = Math.floor(Date.now() / 1000);
+      await c.env.DB.prepare(
+        'INSERT INTO user_chats (user_id, chat_id, is_bookmarked, imported_at) VALUES (?, ?, ?, ?)'
+      )
+        .bind(user.id, id, isBookmarked, now)
+        .run();
+    }
+
+    return c.json({ bookmark: Boolean(isBookmarked) });
+  } catch (error) {
+    console.error('Failed to bookmark chat:', error);
+    return c.json({ error: 'Failed to update bookmark status' }, 500);
   }
 });
 
@@ -541,5 +585,6 @@ function formatChatResponse(row: Record<string, unknown>) {
     messages,
     participants,
     isFavorite: Boolean(row.is_favorite),
+    isBookmarked: Boolean(row.is_bookmarked),
   };
 }
