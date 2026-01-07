@@ -65,14 +65,14 @@ export default function ChatCard({
 
   return (
     <div className="relative group">
-      <div className="absolute bottom-2 right-2 z-10 flex items-center gap-1">
+      <div className="absolute bottom-4 right-4 z-10 flex items-center gap-1">
         <div className="flex items-center gap-0.5 group/heart">
           <button
             onClick={handleToggleFavorite}
             className={`p-1.5 transition-all ${isFavorite
-              ? 'text-hot-pink opacity-100'
-              : 'text-text-secondary opacity-0 group-hover:opacity-100'
-              } hover:scale-110 active:scale-95`}
+              ? 'text-hot-pink'
+              : 'text-text-secondary'
+              } opacity-100 hover:scale-110 active:scale-95`}
             title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
           >
             <svg
@@ -92,7 +92,7 @@ export default function ChatCard({
           {favoriteCount > 0 && (
             <span className={`text-[11px] font-medium transition-all ${isFavorite
               ? 'text-hot-pink opacity-100'
-              : 'text-text-secondary opacity-0 group-hover:opacity-100'
+              : 'text-text-secondary opacity-100'
               } select-none -ml-1 pr-1`}>
               {favoriteCount}
             </span>
@@ -111,7 +111,7 @@ export default function ChatCard({
           }}
           className={`p-1.5 transition-all ${isBookmarked
             ? 'text-accent opacity-100'
-            : 'text-text-secondary opacity-0 group-hover:opacity-100'
+            : 'text-text-secondary opacity-100'
             } hover:scale-110 active:scale-95`}
           title={isBookmarked ? 'Remove bookmark' : 'Bookmark chat'}
         >

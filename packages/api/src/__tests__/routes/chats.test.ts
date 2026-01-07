@@ -15,8 +15,8 @@ const createMockDb = (sessionUser: { id: string; role: string } | null = null) =
   }> = [];
 
   return {
-    prepare: (sql: string) => ({
-      bind: (...bindings: unknown[]) => ({
+    prepare: (sql: string) => {
+      const exec = (...bindings: unknown[]) => ({
         run: async () => {
           statements.push({ sql, bindings });
           return { success: true, meta: {} };
@@ -41,7 +41,7 @@ const createMockDb = (sessionUser: { id: string; role: string } | null = null) =
         },
         all: async () => {
           statements.push({ sql, bindings });
-          if (sql.includes('SELECT') && sql.includes('chats')) {
+          if (sql.includes('SELECT') && sql.includes('chats') && !sql.includes('SUM(is_favorite)')) {
             const results = Array.from(storage.entries())
               .filter(([key]) => key.startsWith('chat:'))
               .map(([key, value]: [string, any]) => {
@@ -50,10 +50,33 @@ const createMockDb = (sessionUser: { id: string; role: string } | null = null) =
               });
             return { results };
           }
+          if (sql.includes('user_chats') && sql.includes('SUM(is_favorite)')) {
+            // Mock social counts aggregation
+            const countsMap = new Map<string, number>();
+            Array.from(storage.entries())
+              .filter(([key]) => key.startsWith('fav:'))
+              .forEach(([key, value]) => {
+                const id = key.replace('fav:', '');
+                if (value) {
+                  countsMap.set(id, (countsMap.get(id) || 0) + 1);
+                }
+              });
+            const results = Array.from(countsMap.entries()).map(([chat_id, favorite_count]) => ({
+              chat_id,
+              favorite_count,
+            }));
+            return { results };
+          }
           return { results: [] };
         },
-      }),
-    }),
+      });
+
+      const stmt = exec();
+      return {
+        ...stmt,
+        bind: (...bindings: unknown[]) => exec(...bindings),
+      };
+    },
     // Helper for tests to set up data
     _setChat: (id: string, data: unknown) => storage.set(`chat:${id}`, data),
     _setFavorite: (id: string, isFav: boolean) => storage.set(`fav:${id}`, isFav),
@@ -417,6 +440,39 @@ describe('chatsRoutes', () => {
       expect(res.status).toBe(200);
       const json = await res.json();
       expect(json.chats[0]).toHaveProperty('isFavorite', true);
+    });
+  });
+
+  describe('GET /api/v1/chats/social-counts', () => {
+    it('returns empty counts when no favorites exist', async () => {
+      const mockEnv = createMockEnv(null);
+      const res = await app.request('/api/v1/chats/social-counts', {
+        method: 'GET',
+      }, mockEnv);
+
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json).toEqual({ counts: {} });
+    });
+
+    it('returns aggregated counts for favorited chats', async () => {
+      const mockEnv = createMockEnv(null);
+      const db = (mockEnv.DB as any);
+
+      // Simulate multiple users favoriting same/different chats
+      db._setFavorite('chat-1', true);
+      db._setFavorite('chat-2', true);
+
+      const res = await app.request('/api/v1/chats/social-counts', {
+        method: 'GET',
+      }, mockEnv);
+
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json.counts).toEqual({
+        'chat-1': 1,
+        'chat-2': 1,
+      });
     });
   });
 });

@@ -281,7 +281,7 @@ export default function Home() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search messages..."
-                  className="w-full pl-10 pr-10 py-2.5 border border-border rounded-xl bg-bg-tertiary text-text-primary placeholder:text-text-muted focus:ring-2 focus:ring-accent focus:border-transparent transition-all outline-none"
+                  className="w-full pl-10 pr-10 py-2.5 border border-border rounded-xl bg-bg-tertiary text-text-primary placeholder:text-text-muted focus:ring-2 focus:ring-accent focus:border-transparent transition-all outline-none text-sm"
                 />
                 {searchQuery && (
                   <button

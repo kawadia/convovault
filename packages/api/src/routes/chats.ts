@@ -283,6 +283,30 @@ chatsRoutes.get('/chats', async (c) => {
 });
 
 /**
+ * GET /chats/social-counts
+ * Get global favorite counts for all chats
+ */
+chatsRoutes.get('/chats/social-counts', async (c) => {
+  try {
+    const result = await c.env.DB.prepare(`
+      SELECT chat_id, SUM(is_favorite) as favorite_count
+      FROM user_chats
+      GROUP BY chat_id
+    `).all();
+
+    const counts: Record<string, number> = {};
+    (result.results || []).forEach((row) => {
+      counts[row.chat_id as string] = Number(row.favorite_count);
+    });
+
+    return c.json({ counts });
+  } catch (error) {
+    console.error('Failed to get social counts:', error);
+    return c.json({ counts: {} });
+  }
+});
+
+/**
  * GET /chats/:id
  * Get a chat transcript (public)
  */
