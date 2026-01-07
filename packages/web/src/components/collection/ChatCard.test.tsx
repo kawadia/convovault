@@ -279,16 +279,38 @@ describe('ChatCard', () => {
       expect(screen.getByTitle(/bookmark/i)).toBeInTheDocument();
     });
 
-    it('toggles bookmark icon when clicked', async () => {
+    it('calls onToggleBookmark when clicked', async () => {
       mockAuthAsOwner();
-      renderWithRouter(<ChatCard chat={mockChat} />);
+      const onToggleBookmark = vi.fn();
+      renderWithRouter(
+        <ChatCard
+          chat={mockChat}
+          isBookmarked={false}
+          onToggleBookmark={onToggleBookmark}
+        />
+      );
+
       const bookmarkBtn = screen.getByTitle('Bookmark chat');
-
       fireEvent.click(bookmarkBtn);
-      expect(screen.getByTitle('Remove bookmark')).toBeInTheDocument();
 
-      fireEvent.click(screen.getByTitle('Remove bookmark'));
+      expect(onToggleBookmark).toHaveBeenCalledWith('test-chat-123');
+    });
+
+    it('renders correct state based on isBookmarked prop', () => {
+      mockAuthAsOwner();
+      const { rerender } = render(
+        <BrowserRouter>
+          <ChatCard chat={mockChat} isBookmarked={false} />
+        </BrowserRouter>
+      );
       expect(screen.getByTitle('Bookmark chat')).toBeInTheDocument();
+
+      rerender(
+        <BrowserRouter>
+          <ChatCard chat={mockChat} isBookmarked={true} />
+        </BrowserRouter>
+      );
+      expect(screen.getByTitle('Remove bookmark')).toBeInTheDocument();
     });
   });
 });

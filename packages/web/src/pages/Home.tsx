@@ -32,6 +32,31 @@ export default function Home() {
   const queryClient = useQueryClient();
   const { user, login, isLoading: isAuthLoading } = useAuth();
 
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'longest' | 'shortest'>('newest');
+  const [activeFilters, setActiveFilters] = useState<Set<string>>(new Set());
+  const [bookmarks, setBookmarks] = useState<Set<string>>(() => {
+    const saved = localStorage.getItem('diastack-bookmarks');
+    return saved ? new Set(JSON.parse(saved)) : new Set();
+  });
+
+  useEffect(() => {
+    localStorage.setItem('diastack-bookmarks', JSON.stringify(Array.from(bookmarks)));
+  }, [bookmarks]);
+
+  const toggleFilter = (filter: string) => {
+    const next = new Set(activeFilters);
+    if (next.has(filter)) next.delete(filter);
+    else next.add(filter);
+    setActiveFilters(next);
+  };
+
+  const toggleBookmark = (id: string) => {
+    const next = new Set(bookmarks);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setBookmarks(next);
+  };
+
   const debouncedQuery = useDebounce(searchQuery, 300);
 
   const { data, isLoading } = useQuery({
@@ -73,14 +98,32 @@ export default function Home() {
     doSearch();
   }, [debouncedQuery]);
 
-  const chats = data?.chats || [];
+  const rawChats = data?.chats || [];
+
+  // Apply filters and sorting
+  const chats = rawChats
+    .filter(chat => {
+      if (activeFilters.has('Favorites') && !chat.isFavorite) return false;
+      if (activeFilters.has('Bookmarked') && !bookmarks.has(chat.id)) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case 'newest': return b.fetchedAt - a.fetchedAt;
+        case 'oldest': return a.fetchedAt - b.fetchedAt;
+        case 'longest': return b.messageCount - a.messageCount;
+        case 'shortest': return a.messageCount - b.messageCount;
+        default: return 0;
+      }
+    });
+
   const isShowingSearch = searchQuery.length >= 2;
 
   return (
     <div className="min-h-screen bg-bg-primary">
       <header className="bg-bg-secondary border-b border-border">
         <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center mb-4">
+          <div className="flex justify-between items-center mb-6">
             <div>
               <h1 className="text-2xl font-bold text-text-primary">
                 DiaStack
@@ -92,19 +135,19 @@ export default function Home() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => user ? setShowImport(true) : login()}
-                className="px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-hover transition-colors"
+                className="px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-hover transition-colors font-medium"
                 disabled={isAuthLoading}
               >
                 Import Chat
               </button>
               {isAuthLoading ? (
-                <div className="w-8 h-8 rounded-full bg-bg-tertiary animate-pulse" />
+                <div className="w-8 h-8 rounded-full bg-bg-tertiary animate-pulse border border-border" />
               ) : user ? (
                 <UserMenu />
               ) : (
                 <button
                   onClick={login}
-                  className="px-4 py-2 bg-bg-secondary text-text-primary border border-border rounded-lg hover:bg-bg-tertiary transition-colors flex items-center gap-2"
+                  className="px-4 py-2 bg-bg-secondary text-text-primary border border-border rounded-lg hover:bg-bg-tertiary transition-colors flex items-center gap-2 font-medium"
                 >
                   <svg className="w-5 h-5" viewBox="0 0 24 24">
                     <path
@@ -124,44 +167,88 @@ export default function Home() {
                       d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                     />
                   </svg>
-                  Sign in with Google
+                  Sign in
                 </button>
               )}
             </div>
           </div>
 
-          {/* Search bar */}
-          <div className="relative">
-            <svg
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search messages..."
-              className="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-bg-tertiary text-text-primary placeholder:text-text-muted focus:ring-2 focus:ring-accent focus:border-transparent"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-secondary"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          <div className="space-y-4">
+            <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+              {/* Search bar - 60% width */}
+              <div className="relative w-full md:w-[60%]">
+                <svg
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
                 </svg>
-              </button>
-            )}
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search messages..."
+                  className="w-full pl-10 pr-10 py-2.5 border border-border rounded-xl bg-bg-tertiary text-text-primary placeholder:text-text-muted focus:ring-2 focus:ring-accent focus:border-transparent transition-all outline-none"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-secondary"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+
+              {/* Sort Dropdown */}
+              <div className="flex items-center gap-2 w-full md:w-auto">
+                <span className="text-sm text-text-secondary whitespace-nowrap">Sort by:</span>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  className="bg-bg-tertiary text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-accent outline-none cursor-pointer hover:bg-bg-hover transition-colors"
+                >
+                  <option value="newest">Newest First</option>
+                  <option value="oldest">Oldest First</option>
+                  <option value="longest">Most Messages</option>
+                  <option value="shortest">Fewest Messages</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Filter Chips */}
+            <div className="flex flex-wrap gap-2 items-center">
+              <span className="text-sm text-text-secondary mr-1">Filter:</span>
+              {['Favorites', 'Bookmarked'].map((filter) => (
+                <button
+                  key={filter}
+                  onClick={() => toggleFilter(filter)}
+                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all border ${activeFilters.has(filter)
+                    ? 'bg-accent/10 border-accent text-accent shadow-sm'
+                    : 'bg-bg-tertiary border-border text-text-secondary hover:bg-bg-hover hover:border-text-muted'
+                    }`}
+                >
+                  {filter}
+                </button>
+              ))}
+              {activeFilters.size > 0 && (
+                <button
+                  onClick={() => setActiveFilters(new Set())}
+                  className="text-xs text-text-muted hover:text-accent transition-colors underline underline-offset-4 ml-2"
+                >
+                  Clear all
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -248,7 +335,13 @@ export default function Home() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {chats.map((chat) => (
-                  <ChatCard key={chat.id} chat={chat} onDelete={handleDelete} />
+                  <ChatCard
+                    key={chat.id}
+                    chat={chat}
+                    onDelete={handleDelete}
+                    isBookmarked={bookmarks.has(chat.id)}
+                    onToggleBookmark={toggleBookmark}
+                  />
                 ))}
               </div>
             )}

@@ -7,9 +7,11 @@ import { useAuth } from '../../contexts/AuthContext';
 interface ChatCardProps {
   chat: ChatSummary;
   onDelete?: (id: string) => void;
+  isBookmarked?: boolean;
+  onToggleBookmark?: (id: string) => void;
 }
 
-export default function ChatCard({ chat, onDelete }: ChatCardProps) {
+export default function ChatCard({ chat, onDelete, isBookmarked, onToggleBookmark }: ChatCardProps) {
   const { user, isAdmin } = useAuth();
 
   const formattedDate = new Date(chat.fetchedAt).toLocaleDateString('en-US', {
@@ -19,7 +21,6 @@ export default function ChatCard({ chat, onDelete }: ChatCardProps) {
   });
 
   const [isFavorite, setIsFavorite] = useState(chat.isFavorite);
-  const [isBookmarked, setIsBookmarked] = useState(false);
 
   const handleDelete = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -48,7 +49,7 @@ export default function ChatCard({ chat, onDelete }: ChatCardProps) {
   const handleToggleBookmark = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsBookmarked(!isBookmarked);
+    onToggleBookmark?.(chat.id);
   };
 
   // Format participants display
