@@ -43,3 +43,10 @@ body {
     transparent 100%
   );
 }
+
+/* Morphing Header - Frosted glass effect */
+.header-glass {
+  background: rgba(10, 10, 10, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
