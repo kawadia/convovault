@@ -51,7 +51,7 @@ export default function ExpandedHeader({
         <div className="flex justify-between items-center mb-4">
           <div>
             <h1 className="text-2xl font-bold text-text-primary">DiaStack</h1>
-            <p className="text-sm text-text-secondary hidden sm:block">
+            <p className="text-sm text-text-secondary">
               Stack of Socratic Dialogues with LLMs
             </p>
           </div>
@@ -85,13 +85,13 @@ export default function ExpandedHeader({
         </div>
 
         {/* Row 2: Search + Filters + Sort */}
-        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+        <div className="flex gap-3 items-center">
           <SearchInput
             value={searchQuery}
             onChange={onSearchChange}
-            className="flex-1"
+            className="flex-1 min-w-0"
           />
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-shrink-0">
             <FilterDropdown
               activeFilters={activeFilters}
               onToggleFilter={onToggleFilter}
