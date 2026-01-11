@@ -70,7 +70,7 @@ export default function ExpandedHeader({
           <div>
             <h1 className="text-2xl font-bold text-text-primary">DiaStack</h1>
             <p className="text-sm text-text-secondary">
-              Stack of Socratic Dialogues with LLMs
+              Socratic Dialogues with LLMs
             </p>
           </div>
           <div className="flex items-center gap-3">
