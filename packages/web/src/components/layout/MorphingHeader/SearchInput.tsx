@@ -61,6 +61,7 @@ export default function SearchInput({
       {(showCloseButton || value) && (
         <button
           onClick={showCloseButton ? handleClose : () => onChange('')}
+          onMouseDown={(e) => e.preventDefault()}
           className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-secondary transition-colors"
           type="button"
         >

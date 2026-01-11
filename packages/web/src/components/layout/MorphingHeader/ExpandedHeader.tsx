@@ -109,6 +109,7 @@ export default function ExpandedHeader({
             onChange={onSearchChange}
             className="flex-1 min-w-0"
             onFocus={() => setIsSearchFocused(true)}
+            onBlur={() => setIsSearchFocused(false)}
             onClose={() => setIsSearchFocused(false)}
             showCloseButton={isMobile && isSearchFocused}
           />
