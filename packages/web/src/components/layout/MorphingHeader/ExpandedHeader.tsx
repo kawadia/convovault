@@ -1,4 +1,5 @@
-import { motion } from 'framer-motion';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import SearchInput from './SearchInput';
 import FilterDropdown from './FilterDropdown';
 import SortDropdown, { SortOption } from './SortDropdown';
@@ -25,6 +26,8 @@ interface ExpandedHeaderProps {
   onLogin: () => void;
 }
 
+const MOBILE_BREAKPOINT = 768;
+
 export default function ExpandedHeader({
   searchQuery,
   onSearchChange,
@@ -38,6 +41,21 @@ export default function ExpandedHeader({
   isAuthLoading,
   onLogin,
 }: ExpandedHeaderProps) {
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
+    setIsMobile(mql.matches);
+
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, []);
+
+  // On mobile, when search is focused, hide filters/sort
+  const showFiltersSort = !(isMobile && isSearchFocused);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: -10 }}
@@ -90,15 +108,28 @@ export default function ExpandedHeader({
             value={searchQuery}
             onChange={onSearchChange}
             className="flex-1 min-w-0"
+            onFocus={() => setIsSearchFocused(true)}
+            onClose={() => setIsSearchFocused(false)}
+            showCloseButton={isMobile && isSearchFocused}
           />
-          <div className="flex gap-2 flex-shrink-0">
-            <FilterDropdown
-              activeFilters={activeFilters}
-              onToggleFilter={onToggleFilter}
-              onClear={onClearFilters}
-            />
-            <SortDropdown value={sortBy} onChange={onSortChange} />
-          </div>
+          <AnimatePresence>
+            {showFiltersSort && (
+              <motion.div
+                initial={{ opacity: 0, width: 0 }}
+                animate={{ opacity: 1, width: 'auto' }}
+                exit={{ opacity: 0, width: 0 }}
+                transition={{ duration: 0.2 }}
+                className="flex gap-2 flex-shrink-0 overflow-hidden"
+              >
+                <FilterDropdown
+                  activeFilters={activeFilters}
+                  onToggleFilter={onToggleFilter}
+                  onClear={onClearFilters}
+                />
+                <SortDropdown value={sortBy} onChange={onSortChange} />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </motion.div>
