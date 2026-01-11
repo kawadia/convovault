@@ -97,6 +97,7 @@ export default function Message({
       <div
         ref={intersectionRef}
         id={`msg-${message.index}`}
+        data-role="user"
         className={`flex justify-end transition-all duration-500 ${
           isHighlighted ? 'ring-2 ring-accent ring-offset-4 ring-offset-bg-primary rounded-2xl' : ''
         }`}
@@ -152,6 +153,7 @@ export default function Message({
     <div
       ref={intersectionRef}
       id={`msg-${message.index}`}
+      data-role="assistant"
       className={`transition-all duration-500 ${
         isHighlighted ? 'ring-2 ring-accent ring-offset-4 ring-offset-bg-primary rounded-lg p-2 -m-2' : ''
       }`}

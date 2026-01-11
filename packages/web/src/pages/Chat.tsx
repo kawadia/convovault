@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { api, SearchResult } from '../api/client';
 import ChatViewer from '../components/chat/ChatViewer';
 import ChatHeader from '../components/chat/ChatHeader';
+import { useTopVisibleMessage } from '../hooks/useTopVisibleMessage';
 
 // Threshold for considering a message "long" - must match Message.tsx
 const LONG_MESSAGE_THRESHOLD = 500;
@@ -158,6 +159,9 @@ export default function Chat() {
     setTimeout(() => setGlobalFoldState('all-unfolded'), 0);
   }, []);
 
+  // Track which speaker's message is at top of viewport
+  const currentSpeaker = useTopVisibleMessage();
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-bg-primary flex items-center justify-center">
@@ -268,6 +272,7 @@ export default function Chat() {
         showSearch={showSearch}
         onToggleSearch={() => setShowSearch(prev => !prev)}
         searchBar={searchBar}
+        currentSpeaker={currentSpeaker}
       />
 
       {/* Disclaimer banner */}

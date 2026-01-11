@@ -5,12 +5,14 @@ interface CollapsedChatHeaderProps {
   onSearchClick: () => void;
   onMenuClick: () => void;
   showSearch: boolean;
+  currentSpeaker?: string;
 }
 
 export default function CollapsedChatHeader({
   onSearchClick,
   onMenuClick,
   showSearch,
+  currentSpeaker = 'Claude',
 }: CollapsedChatHeaderProps) {
   return (
     <motion.div
@@ -21,11 +23,11 @@ export default function CollapsedChatHeader({
       className="header-glass border-b border-border/50"
     >
       <div className="max-w-3xl mx-auto px-4 py-2">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
           {/* Back button */}
           <Link
             to="/"
-            className="p-2 -ml-2 rounded-lg text-text-muted hover:text-text-primary hover:bg-white/10 transition-colors"
+            className="p-2 -ml-2 rounded-lg text-text-muted hover:text-text-primary hover:bg-white/10 transition-colors flex-shrink-0"
             title="Back to home"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -33,20 +35,23 @@ export default function CollapsedChatHeader({
             </svg>
           </Link>
 
-          {/* Claude button (tappable to open dropdown) */}
+          {/* Tappable center area - opens dropdown */}
           <button
             onClick={onMenuClick}
-            className="px-3 py-1.5 bg-gray-500/20 text-gray-400 rounded-lg text-sm font-medium hover:bg-gray-500/30 transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 py-1 rounded-lg hover:bg-white/5 transition-colors"
           >
-            Claude
+            <span className="px-3 py-1 bg-gray-500/20 text-gray-400 rounded-lg text-sm font-medium">
+              {currentSpeaker}
+            </span>
+            <svg className="w-4 h-4 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
           </button>
-
-          <div className="flex-1" />
 
           {/* Search icon */}
           <button
             onClick={onSearchClick}
-            className={`p-2 rounded-lg transition-colors ${
+            className={`p-2 rounded-lg transition-colors flex-shrink-0 ${
               showSearch
                 ? 'bg-accent text-white'
                 : 'text-text-muted hover:text-text-primary hover:bg-white/10'

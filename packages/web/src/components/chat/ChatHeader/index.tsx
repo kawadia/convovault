@@ -20,6 +20,7 @@ interface ChatHeaderProps {
   showSearch: boolean;
   onToggleSearch: () => void;
   searchBar: React.ReactNode;
+  currentSpeaker?: 'user' | 'assistant';
 }
 
 const MOBILE_BREAKPOINT = 768;
@@ -50,7 +51,12 @@ export default function ChatHeader({
   showSearch,
   onToggleSearch,
   searchBar,
+  currentSpeaker = 'assistant',
 }: ChatHeaderProps) {
+  // Get display name for current speaker
+  const speakerName = currentSpeaker === 'assistant'
+    ? (chat.participants?.assistant || 'Claude')
+    : (chat.participants?.user || 'User');
   const isMobile = useIsMobile();
   const { isScrolled } = useScrollPosition({
     threshold: SCROLL_THRESHOLD,
@@ -89,6 +95,7 @@ export default function ChatHeader({
             onSearchClick={handleSearchClick}
             onMenuClick={handleMenuClick}
             showSearch={showSearch}
+            currentSpeaker={speakerName}
           />
         ) : (
           <ExpandedChatHeader
