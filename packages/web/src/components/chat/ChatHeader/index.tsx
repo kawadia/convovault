@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { useScrollPosition } from '../../../hooks/useScrollPosition';
 import ExpandedChatHeader from './ExpandedChatHeader';
@@ -23,25 +23,7 @@ interface ChatHeaderProps {
   currentSpeaker?: 'user' | 'assistant';
 }
 
-const MOBILE_BREAKPOINT = 768;
 const SCROLL_THRESHOLD = 100;
-
-function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return window.innerWidth < MOBILE_BREAKPOINT;
-  });
-
-  useEffect(() => {
-    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
-    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
-    setIsMobile(mql.matches);
-    mql.addEventListener('change', handler);
-    return () => mql.removeEventListener('change', handler);
-  }, []);
-
-  return isMobile;
-}
 
 export default function ChatHeader({
   chat,
@@ -57,19 +39,11 @@ export default function ChatHeader({
   const speakerName = currentSpeaker === 'assistant'
     ? (chat.participants?.assistant || 'Claude')
     : (chat.participants?.user || 'User');
-  const isMobile = useIsMobile();
   const { isScrolled } = useScrollPosition({
     threshold: SCROLL_THRESHOLD,
-    enabled: isMobile,
+    enabled: true,
   });
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-
-  // Close dropdown when switching to desktop
-  useEffect(() => {
-    if (!isMobile) {
-      setIsDropdownOpen(false);
-    }
-  }, [isMobile]);
 
   const handleSearchClick = () => {
     onToggleSearch();
@@ -83,8 +57,8 @@ export default function ChatHeader({
     setIsDropdownOpen(false);
   };
 
-  // On mobile + scrolled: show collapsed header
-  const showCollapsed = isMobile && isScrolled;
+  // Show collapsed header when scrolled past threshold
+  const showCollapsed = isScrolled;
 
   return (
     <header className="sticky top-0 z-20">
