@@ -98,18 +98,6 @@ export const UserChatDataSchema = z.object({
 
 export type UserChatData = z.infer<typeof UserChatDataSchema>;
 
-export const UserHighlightSchema = z.object({
-  id: z.string(),
-  chatId: z.string(),
-  messageId: z.string(),
-  startOffset: z.number().int().nonnegative(),
-  endOffset: z.number().int().nonnegative(),
-  note: z.string().optional(),
-  createdAt: z.number(),
-});
-
-export type UserHighlight = z.infer<typeof UserHighlightSchema>;
-
 export const UserSettingsSchema = z.object({
   theme: z.enum(['light', 'dark', 'system']),
   fontSize: z.enum(['small', 'medium', 'large']),
@@ -135,15 +123,6 @@ export const UpdateUserChatRequestSchema = z.object({
 });
 
 export type UpdateUserChatRequest = z.infer<typeof UpdateUserChatRequestSchema>;
-
-export const CreateHighlightRequestSchema = z.object({
-  messageId: z.string(),
-  startOffset: z.number().int().nonnegative(),
-  endOffset: z.number().int().nonnegative(),
-  note: z.string().optional(),
-});
-
-export type CreateHighlightRequest = z.infer<typeof CreateHighlightRequestSchema>;
 
 // ============================================================================
 // Parser Interface

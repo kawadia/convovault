@@ -5,11 +5,9 @@ import {
   MessageSchema,
   ChatTranscriptSchema,
   UserChatDataSchema,
-  UserHighlightSchema,
   UserSettingsSchema,
   ImportChatRequestSchema,
   UpdateUserChatRequestSchema,
-  CreateHighlightRequestSchema,
 } from '../types';
 
 describe('ChatSourceSchema', () => {
@@ -228,47 +226,6 @@ describe('UserChatDataSchema', () => {
   });
 });
 
-describe('UserHighlightSchema', () => {
-  it('accepts valid highlight', () => {
-    const result = UserHighlightSchema.parse({
-      id: 'hl-1',
-      chatId: 'chat-123',
-      messageId: 'msg-1',
-      startOffset: 10,
-      endOffset: 50,
-      createdAt: 1704067200000,
-    });
-    expect(result.id).toBe('hl-1');
-    expect(result.startOffset).toBe(10);
-  });
-
-  it('accepts highlight with note', () => {
-    const result = UserHighlightSchema.parse({
-      id: 'hl-1',
-      chatId: 'chat-123',
-      messageId: 'msg-1',
-      startOffset: 0,
-      endOffset: 20,
-      note: 'Important point',
-      createdAt: 1704067200000,
-    });
-    expect(result.note).toBe('Important point');
-  });
-
-  it('rejects highlight with negative offset', () => {
-    expect(() =>
-      UserHighlightSchema.parse({
-        id: 'hl-1',
-        chatId: 'chat-123',
-        messageId: 'msg-1',
-        startOffset: -1,
-        endOffset: 10,
-        createdAt: 1704067200000,
-      })
-    ).toThrow();
-  });
-});
-
 describe('UserSettingsSchema', () => {
   it('accepts valid settings', () => {
     const result = UserSettingsSchema.parse({
@@ -353,32 +310,3 @@ describe('UpdateUserChatRequestSchema', () => {
   });
 });
 
-describe('CreateHighlightRequestSchema', () => {
-  it('accepts valid highlight request', () => {
-    const result = CreateHighlightRequestSchema.parse({
-      messageId: 'msg-1',
-      startOffset: 10,
-      endOffset: 50,
-    });
-    expect(result.messageId).toBe('msg-1');
-  });
-
-  it('accepts highlight request with note', () => {
-    const result = CreateHighlightRequestSchema.parse({
-      messageId: 'msg-1',
-      startOffset: 0,
-      endOffset: 20,
-      note: 'Remember this',
-    });
-    expect(result.note).toBe('Remember this');
-  });
-
-  it('rejects missing required fields', () => {
-    expect(() =>
-      CreateHighlightRequestSchema.parse({
-        startOffset: 0,
-        endOffset: 10,
-      })
-    ).toThrow();
-  });
-});

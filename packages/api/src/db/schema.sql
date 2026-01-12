@@ -71,20 +71,6 @@ CREATE TABLE IF NOT EXISTS user_tags (
 
 CREATE INDEX IF NOT EXISTS idx_user_tags_tag ON user_tags(user_id, tag);
 
--- Highlights and annotations
-CREATE TABLE IF NOT EXISTS user_highlights (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL,
-  chat_id TEXT NOT NULL,
-  message_id TEXT NOT NULL,
-  start_offset INTEGER NOT NULL,
-  end_offset INTEGER NOT NULL,
-  note TEXT,
-  created_at INTEGER NOT NULL
-);
-
-CREATE INDEX IF NOT EXISTS idx_highlights_chat ON user_highlights(user_id, chat_id);
-
 -- User settings
 CREATE TABLE IF NOT EXISTS user_settings (
   user_id TEXT PRIMARY KEY,

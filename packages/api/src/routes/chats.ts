@@ -450,9 +450,6 @@ chatsRoutes.delete('/chats/:id', requireAuth, async (c) => {
     await c.env.DB.prepare('DELETE FROM user_tags WHERE chat_id = ?')
       .bind(id)
       .run();
-    await c.env.DB.prepare('DELETE FROM user_highlights WHERE chat_id = ?')
-      .bind(id)
-      .run();
 
     // Delete from FTS
     await removeChatFromFTS(c.env.DB, id);
