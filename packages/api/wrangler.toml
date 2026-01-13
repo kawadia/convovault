@@ -23,3 +23,8 @@ invocation_logs = true
 binding = "DB"
 database_name = "convovault-db"
 database_id = "38085228-fb47-40aa-a732-793a3744bc75"
+
+# R2 bucket for audio storage
+[[r2_buckets]]
+binding = "AUDIO_BUCKET"
+bucket_name = "convovault-audio"

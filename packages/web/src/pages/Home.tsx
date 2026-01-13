@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient, useQueries } from '@tanstack/react-query';
 import { Link } from 'react-router';
 import { api, SearchResult } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
@@ -9,6 +9,7 @@ import DeleteConfirmModal from '../components/collection/DeleteConfirmModal';
 import LoginPrompt from '../components/auth/LoginPrompt';
 import MorphingHeader from '../components/layout/MorphingHeader';
 import { SortOption } from '../components/layout/MorphingHeader/SortDropdown';
+import GenerateAudioModal from '../components/audio/GenerateAudioModal';
 
 // Debounce hook
 function useDebounce<T>(value: T, delay: number): T {
@@ -35,6 +36,7 @@ export default function Home() {
   const [loginPrompt, setLoginPrompt] = useState<{ title: string; message: string } | null>(null);
   const [chatToDelete, setChatToDelete] = useState<{ id: string; title: string } | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [audioModalChat, setAudioModalChat] = useState<{ id: string; title: string } | null>(null);
   const queryClient = useQueryClient();
   const { user, login, isLoading: isAuthLoading } = useAuth();
 
@@ -144,6 +146,36 @@ export default function Home() {
   });
 
   const socialCounts = socialData?.counts || {};
+
+  // Get chat IDs owned by current user for audio status queries
+  const ownedChatIds = useMemo(() => {
+    if (!user || !data?.chats) return [];
+    return data.chats.filter(c => c.userId === user.id).map(c => c.id);
+  }, [data?.chats, user]);
+
+  // Fetch audio status for owned chats
+  const audioQueries = useQueries({
+    queries: ownedChatIds.map(chatId => ({
+      queryKey: ['audioStatus', chatId],
+      queryFn: () => api.getAudioStatus(chatId),
+      staleTime: 60000, // Cache for 1 minute
+    })),
+  });
+
+  // Build a map of chatId -> audioStatus
+  const audioStatusMap = useMemo(() => {
+    const map: Record<string, ReturnType<typeof api.getAudioStatus> extends Promise<infer T> ? T : never> = {};
+    ownedChatIds.forEach((chatId, index) => {
+      if (audioQueries[index]?.data) {
+        map[chatId] = audioQueries[index].data;
+      }
+    });
+    return map;
+  }, [ownedChatIds, audioQueries]);
+
+  const handleGenerateAudio = (chatId: string, chatTitle: string) => {
+    setAudioModalChat({ id: chatId, title: chatTitle });
+  };
 
   // Force cache invalidation when user logs out to clear personal state
   useEffect(() => {
@@ -348,6 +380,8 @@ export default function Home() {
                     onToggleFavorite={(id) => toggleFavorite(id, !!chat.isFavorite)}
                     onLoginRequired={(title, message) => setLoginPrompt({ title, message })}
                     favoriteCount={socialCounts[chat.id] || 0}
+                    audioStatus={audioStatusMap[chat.id]}
+                    onGenerateAudio={handleGenerateAudio}
                   />
                 ))}
               </div>
@@ -371,6 +405,13 @@ export default function Home() {
           onCancel={handleDeleteCancel}
           isDeleting={deleteMutation.isPending}
           error={deleteError}
+        />
+      )}
+      {audioModalChat && (
+        <GenerateAudioModal
+          chatId={audioModalChat.id}
+          chatTitle={audioModalChat.title}
+          onClose={() => setAudioModalChat(null)}
         />
       )}
     </div>

@@ -5,6 +5,7 @@ import { api, SearchResult } from '../api/client';
 import ChatViewer from '../components/chat/ChatViewer';
 import ChatHeader from '../components/chat/ChatHeader';
 import { useTopVisibleMessage } from '../hooks/useTopVisibleMessage';
+import AudioPlayer from '../components/audio/AudioPlayer';
 
 // Threshold for considering a message "long" - must match Message.tsx
 const LONG_MESSAGE_THRESHOLD = 500;
@@ -139,6 +140,16 @@ export default function Chat() {
     queryFn: () => api.getChat(id!),
     enabled: !!id,
   });
+
+  // Fetch audio status
+  const { data: audioStatus } = useQuery({
+    queryKey: ['audioStatus', id],
+    queryFn: () => api.getAudioStatus(id!),
+    enabled: !!id,
+  });
+
+  const [showAudioPlayer, setShowAudioPlayer] = useState(true);
+  const hasAudio = audioStatus?.status === 'ready' && audioStatus?.url;
 
   // Count long messages for fold controls
   const longMessageCount = useMemo(() => {
@@ -291,13 +302,23 @@ export default function Chat() {
       </div>
 
       {/* Chat content */}
-      <main className="max-w-3xl mx-auto px-6 py-12">
+      <main className={`max-w-3xl mx-auto px-6 py-12 ${hasAudio && showAudioPlayer ? 'pb-28' : ''}`}>
         <ChatViewer
           messages={chat.messages}
           highlightedMessageIndex={highlightedMessageIndex}
           globalFoldState={globalFoldState}
         />
       </main>
+
+      {/* Audio player */}
+      {hasAudio && showAudioPlayer && audioStatus?.url && (
+        <AudioPlayer
+          chatId={id!}
+          audioUrl={api.getAudioStreamUrl(id!)}
+          duration={audioStatus.duration || 0}
+          onClose={() => setShowAudioPlayer(false)}
+        />
+      )}
     </div>
   );
 }

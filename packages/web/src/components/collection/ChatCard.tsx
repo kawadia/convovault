@@ -1,5 +1,6 @@
 import { Link } from 'react-router';
 import type { ChatSummary } from '../../api/client';
+import type { AudioResponse } from '@convovault/shared';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface ChatCardProps {
@@ -11,6 +12,8 @@ interface ChatCardProps {
   onToggleFavorite?: (id: string) => void;
   onLoginRequired?: (title: string, message: string) => void;
   favoriteCount?: number;
+  audioStatus?: AudioResponse;
+  onGenerateAudio?: (chatId: string, chatTitle: string) => void;
 }
 
 export default function ChatCard({
@@ -21,9 +24,22 @@ export default function ChatCard({
   isFavorite,
   onToggleFavorite,
   onLoginRequired,
-  favoriteCount = 0
+  favoriteCount = 0,
+  audioStatus,
+  onGenerateAudio,
 }: ChatCardProps) {
   const { user, isAdmin } = useAuth();
+
+  // User can generate audio if they are the owner
+  const isOwner = user && chat.userId === user.id;
+  const hasAudio = audioStatus?.status === 'ready';
+  const isGenerating = audioStatus?.status === 'generating';
+
+  const handleGenerateAudio = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onGenerateAudio?.(chat.id, chat.title);
+  };
 
   const formattedDate = new Date(chat.fetchedAt).toLocaleDateString('en-US', {
     month: 'short',
@@ -127,6 +143,42 @@ export default function ChatCard({
             />
           </svg>
         </button>
+
+        {/* Audio button - only shown for owner */}
+        {isOwner && onGenerateAudio && (
+          <button
+            onClick={handleGenerateAudio}
+            disabled={isGenerating}
+            className={`p-1.5 transition-all ${
+              hasAudio
+                ? 'text-green-400'
+                : isGenerating
+                ? 'text-accent animate-pulse'
+                : 'text-text-secondary'
+            } hover:scale-110 active:scale-95 disabled:cursor-not-allowed`}
+            title={
+              hasAudio
+                ? 'Audio ready'
+                : isGenerating
+                ? 'Generating audio...'
+                : 'Generate audio'
+            }
+          >
+            <svg
+              className="w-5 h-5 transition-colors"
+              fill={hasAudio ? 'currentColor' : 'none'}
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"
+              />
+            </svg>
+          </button>
+        )}
 
         {canDelete && onDelete && (
           <button

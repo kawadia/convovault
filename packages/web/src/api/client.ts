@@ -1,4 +1,4 @@
-import type { Message, Participants } from '@convovault/shared';
+import type { Message, Participants, AudioResponse, VoicePreset } from '@convovault/shared';
 
 // Use api.diastack.com in production, allow override via env var for local dev
 const API_BASE = import.meta.env.PROD
@@ -122,5 +122,33 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ bookmark }),
     });
+  },
+
+  // Get audio status for a chat
+  async getAudioStatus(chatId: string): Promise<AudioResponse> {
+    return fetchApi<AudioResponse>(`/chats/${chatId}/audio`);
+  },
+
+  // Generate audio for a chat (owner only)
+  async generateAudio(
+    chatId: string,
+    voiceConfig: { userVoice: VoicePreset; assistantVoice: VoicePreset }
+  ): Promise<AudioResponse> {
+    return fetchApi<AudioResponse>(`/chats/${chatId}/audio`, {
+      method: 'POST',
+      body: JSON.stringify(voiceConfig),
+    });
+  },
+
+  // Delete audio for a chat (owner only)
+  async deleteAudio(chatId: string): Promise<{ deleted: boolean }> {
+    return fetchApi<{ deleted: boolean }>(`/chats/${chatId}/audio`, {
+      method: 'DELETE',
+    });
+  },
+
+  // Get audio stream URL for a chat
+  getAudioStreamUrl(chatId: string): string {
+    return `${API_BASE}/chats/${chatId}/audio/stream`;
   },
 };

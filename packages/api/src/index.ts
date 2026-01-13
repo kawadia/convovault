@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { chatsRoutes } from './routes/chats';
 import { authRoutes } from './routes/auth';
+import { audioRoutes } from './routes/audio';
 
 // Types for Cloudflare Workers environment
 export interface Env {
@@ -16,6 +17,9 @@ export interface Env {
   GOOGLE_CLIENT_SECRET: string;
   AUTH_REDIRECT_URI: string;
   FRONTEND_URL: string;
+  // Audio generation
+  AUDIO_BUCKET: R2Bucket;
+  GEMINI_API_KEY: string;
 }
 
 // Create Hono app with typed environment
@@ -59,6 +63,7 @@ app.get('/api/v1/health', (c) => {
 // Mount routes
 app.route('/api/v1', chatsRoutes);
 app.route('/api/v1', authRoutes);
+app.route('/api/v1', audioRoutes);
 
 // 404 handler
 app.notFound((c) => {

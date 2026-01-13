@@ -133,3 +133,51 @@ export interface ChatParser {
   canParse(url: string): boolean;
   parse(html: string, url: string): ChatTranscript;
 }
+
+// ============================================================================
+// Audio Types
+// ============================================================================
+
+export const VoicePresetSchema = z.enum([
+  'male-casual',
+  'male-formal',
+  'female-casual',
+  'female-formal',
+]);
+
+export type VoicePreset = z.infer<typeof VoicePresetSchema>;
+
+export const VoiceConfigSchema = z.object({
+  userVoice: VoicePresetSchema,
+  assistantVoice: VoicePresetSchema,
+});
+
+export type VoiceConfig = z.infer<typeof VoiceConfigSchema>;
+
+export const AudioStatusSchema = z.enum([
+  'pending',
+  'generating',
+  'ready',
+  'failed',
+]);
+
+export type AudioStatus = z.infer<typeof AudioStatusSchema>;
+
+export const AudioResponseSchema = z.object({
+  chatId: z.string(),
+  status: AudioStatusSchema,
+  voiceConfig: VoiceConfigSchema.optional(),
+  duration: z.number().optional(),
+  url: z.string().optional(),
+  error: z.string().optional(),
+  progress: z.number().optional(),
+});
+
+export type AudioResponse = z.infer<typeof AudioResponseSchema>;
+
+export const GenerateAudioRequestSchema = z.object({
+  userVoice: VoicePresetSchema,
+  assistantVoice: VoicePresetSchema,
+});
+
+export type GenerateAudioRequest = z.infer<typeof GenerateAudioRequestSchema>;
